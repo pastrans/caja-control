@@ -1,0 +1,48 @@
+/* Paleta de colores Odoo - Estilo Ciruela */
+.btn-primary-custom {
+  background-color: #714B67;
+  color: white;
+  border: none;
+}
+
+.btn-primary-custom:hover {
+  background-color: #5a3b52;
+  color: white;
+}
+
+/* Estilos específicos para el modal de monedas y billetes (Modo Oscuro) */
+.bg-dark-custom {
+  background-color: #23262d;
+}
+
+.input-group-counter {
+  max-width: 140px;
+  background-color: #2a2e37;
+  border-radius: 6px;
+  border: 1px solid #3a3f4a;
+  overflow: hidden;
+}
+
+/* Ocultar las flechas nativas de los inputs de tipo número */
+.input-group-counter input[type=number]::-webkit-inner-spin-button, 
+.input-group-counter input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+
+/* Quitar la sombra azul por defecto de Bootstrap al enfocar el input */
+.input-group-counter input:focus {
+  box-shadow: none;
+}
+
+.btn-dark-input {
+  background-color: transparent;
+  border: none;
+  font-weight: bold;
+  padding: 0.375rem 0.75rem;
+}
+
+.btn-dark-input:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: white !important;
+}

@@ -1,0 +1,55 @@
+<div class="container mt-4" style="max-width: 600px;">
+  <div class="card shadow-sm p-4">
+    <h3 class="fw-bold mb-4 fs-4">Control de Apertura</h3>
+
+    <form [formGroup]="cajaForm" (ngSubmit)="guardarApertura()">      
+      <div class="mb-4">
+        <label class="form-label small fw-semibold">Apertura en efectivo</label>
+        <div class="input-group" style="max-width: 320px;">
+          <input type="number" 
+                 class="form-control" 
+                 formControlName="openingCash" 
+                 step="0.01" 
+                 placeholder="0.00">
+          <button type="button" 
+                  class="btn btn-outline-secondary" 
+                  (click)="limpiarEfectivo()" title="Limpiar">×</button>
+          <button class="btn btn-outline-secondary px-3" 
+                  type="button" 
+                  (click)="abrirModalBilletes(modalBilletes)" title="Desglose">
+            <i class="bi bi-cash-stack">💵</i>
+          </button>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label small fw-semibold">Apertura de billetes/monedas</label>
+        <textarea class="form-control" 
+                  formControlName="openingNote" 
+                  rows="3" 
+                  placeholder="Agrega una nota de apertura..."></textarea>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold">Abrir Caja</button>
+        <button type="button" class="btn btn-secondary px-4 py-2 fw-semibold" (click)="descartar()">Descartar</button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<ng-template #modalBilletes let-modal>
+  <div class="modal-header">
+    <h5 class="modal-title fw-bold">Monedas/billetes</h5>
+    <button type="button" class="btn-close" aria-label="Close" (click)="modal.dismiss()"></button>
+  </div>
+  <div class="modal-body p-4" [formGroup]="cajaForm">
+    <app-moneda-billetes [denominationsArray]="denominationsFormArray"></app-moneda-billetes>
+
+    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+      <button type="button" class="btn btn-primary px-4" (click)="confirmarDesglose(modal)">Confirmar</button>
+      <div class="fs-5 fw-bold">Total ${{totalModal | number:'1.2-2'}}</div>
+    </div>
+  </div>
+</ng-template>

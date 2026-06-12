@@ -1,0 +1,73 @@
+<form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+  <div class="modal-header bg-dark text-light border-secondary border-opacity-25 py-3">
+    <h5 class="modal-title fs-5 fw-semibold">Cierre de caja</h5>
+    <span class="badge bg-secondary bg-opacity-25 text-light-emphasis border border-secondary border-opacity-50 px-3 py-2 ms-auto rounded-2 small">
+      0 Cobros: $ 0.00
+    </span>
+  </div>
+
+  <div class="modal-body bg-dark text-light px-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <span class="fs-5 fw-medium text-light">Efectivo</span>
+      <span class="fs-5 fw-semibold text-light">$ 2,611.57</span>
+    </div>
+
+    <div class="row g-0 small text-white-50 mb-4">
+      <div class="col-12 d-flex justify-content-between py-1 ps-3 border-start border-secondary border-opacity-25">
+        <span>Apertura</span>
+        <span class="text-light-emphasis">$ 2,611.57</span>
+      </div>
+      <div class="col-12 d-flex justify-content-between py-1 ps-3 border-start border-secondary border-opacity-25">
+        <span><i class="bi bi-caret-right-fill small me-1"></i>Entradas / Salidas</span>
+        <span class="text-light-emphasis">+ $ 0.00</span>
+      </div>
+      <div class="col-12 d-flex justify-content-between py-1 ps-3 border-start border-secondary border-opacity-25">
+        <span class="text-light">Contado</span>
+        <span class="text-light">$ 2,611.57</span>
+      </div>
+      <div class="col-12 d-flex justify-content-between py-1 ps-3 border-start border-secondary border-opacity-25">
+        <span>Difference</span>
+        <span class="text-light-emphasis">$ 0.00</span>
+      </div>
+    </div>
+
+    <hr class="border-secondary border-opacity-50 my-4">
+
+    <div class="mb-4">
+      <label class="form-label text-white-50 small fw-medium mb-2">Efectivo contado</label>
+      <div class="input-group">
+        <input type="text" 
+               formControlName="cashCount"
+               class="form-control bg-secondary bg-opacity-10 text-light border-secondary border-opacity-50 py-2 px-3"
+               [ngClass]="{'is-invalid': registerForm.get('cashCount')?.invalid && registerForm.get('cashCount')?.touched}">
+        <button class="btn btn-outline-secondary border-opacity-50 text-white-50 px-3" type="button" (click)="registerForm.get('cashCount')?.setValue('')">
+          <i class="bi bi-x-lg"></i>
+        </button>
+        <button class="btn btn-secondary bg-opacity-25 border-secondary border-opacity-50 text-light px-3" type="button">
+          <i class="bi bi-cash"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label text-white-50 small fw-medium mb-2">Nota de cierre</label>
+      <textarea class="form-control bg-secondary bg-opacity-10 text-light border-secondary border-opacity-50 py-2 px-3" 
+                formControlName="closingNote"
+                rows="3" 
+                placeholder="Agrega una nota para el cierre de caja..."></textarea>
+    </div>
+  </div>
+
+  <div class="modal-footer bg-dark border-0 justify-content-start px-4 pb-4 pt-0">
+    <button type="submit" 
+            class="btn btn-danger bg-gradient px-4 py-2 fw-medium rounded-2" 
+            [disabled]="registerForm.invalid">
+      Cerrar Caja
+    </button>
+    <button type="button" 
+            class="btn btn-secondary bg-opacity-25 border-0 text-light px-4 py-2 fw-medium rounded-2" 
+            (click)="activeModal.dismiss('Discard')">
+      Descartar
+    </button>
+  </div>
+</form>

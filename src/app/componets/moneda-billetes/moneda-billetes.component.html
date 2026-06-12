@@ -1,0 +1,12 @@
+<div class="row row-cols-1 row-cols-sm-2 g-4" *ngIf="denominationsArray">
+  <div *ngFor="let control of denominationsArray.controls; let i = index" class="col">
+    <div [formGroup]="$any(control)" class="d-flex align-items-center justify-content-between">
+      <div class="input-group" style="max-width: 130px;">
+        <button class="btn btn-outline-secondary" type="button" (click)="cambiarCantidad(i, -1)">−</button>
+        <input type="number" class="form-control text-center px-1" formControlName="cantidad" min="0">
+        <button class="btn btn-outline-secondary" type="button" (click)="cambiarCantidad(i, 1)">+</button>
+      </div>
+      <span class="text-end font-monospace">${{ control.get('valor')?.value | number:'1.2-2' }}</span>
+    </div>
+  </div>
+</div>

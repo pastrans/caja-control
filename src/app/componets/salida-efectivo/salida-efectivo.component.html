@@ -1,0 +1,43 @@
+<form [formGroup]="cashInOutForm" (ngSubmit)="onSubmit()">
+  <div class="modal-header">
+    <h5 class="modal-title fw-bold">Registrar Entrada / Salida</h5>
+    <button type="button" class="btn-close" aria-label="Close" (click)="activeModal.dismiss()"></button>
+  </div>
+  <div class="modal-body p-4">
+    <div class="mb-3">
+      <label class="form-label small fw-semibold">Tipo de Movimiento</label>
+      <div class="d-flex gap-3 mt-2">
+        <div class="form-check">
+          <input class="form-check-input" type="radio" formControlName="type" value="Entrada" id="typeEntrada">
+          <label class="form-check-label" for="typeEntrada">
+            Entrada de Efectivo
+          </label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" formControlName="type" value="Salida" id="typeSalida">
+          <label class="form-check-label" for="typeSalida">
+            Salida de Efectivo
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label small fw-semibold">Monto</label>
+      <div class="input-group">
+        <span class="input-group-text">$</span>
+        <input type="number" class="form-control" formControlName="amount" step="0.01" placeholder="0.00">
+      </div>
+      <div *ngIf="cashInOutForm.get('amount')?.invalid && cashInOutForm.get('amount')?.touched" class="text-danger small mt-1">
+        Debe ingresar un monto válido.
+      </div>
+    </div>
+    <div class="mb-4">
+      <label class="form-label small fw-semibold">Motivo (Opcional)</label>
+      <textarea class="form-control" formControlName="reason" rows="2" placeholder="Especifique el motivo..."></textarea>
+    </div>
+    <div class="d-flex justify-content-end gap-2">
+      <button type="button" class="btn btn-secondary" (click)="activeModal.dismiss()">Cancelar</button>
+      <button type="submit" class="btn btn-primary" [disabled]="cashInOutForm.invalid">Guardar Registro</button>
+    </div>
+  </div>
+</form>
