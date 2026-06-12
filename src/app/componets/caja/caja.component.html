@@ -105,6 +105,7 @@
                 <th scope="col">Entregado</th>
                 <th scope="col">Cambio</th>
                 <th scope="col">Nota</th>
+                <th scope="col">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -116,9 +117,14 @@
                 <td>${{ record.cashProvided | number:'1.2-2' }}</td>
                 <td>${{ record.changeReturned | number:'1.2-2' }}</td>
                 <td class="text-muted small">{{ record.nota || '-' }}</td>
+                <td>
+                  <button class="btn btn-sm btn-outline-info" (click)="verDetalles(record, modalDetalles)" title="Ver detalles de pago">
+                    💵
+                  </button>
+                </td>
               </tr>
               <tr *ngIf="records.length === 0">
-                <td colspan="7" class="text-center text-muted py-4">No hay cobros registrados.</td>
+                <td colspan="8" class="text-center text-muted py-4">No hay cobros registrados.</td>
               </tr>
             </tbody>
           </table>
@@ -179,5 +185,33 @@
       <button type="button" class="btn btn-primary px-4" (click)="confirmarDesglose(modal)">Confirmar</button>
       <div class="fs-5 fw-bold">Total Recibido ${{totalModal | number:'1.2-2'}}</div>
     </div>
+  </div>
+</ng-template>
+
+<!-- Modal para Ver Detalles -->
+<ng-template #modalDetalles let-modal>
+  <div class="modal-header">
+    <h5 class="modal-title fw-bold">Detalles de Pago - Cobro #{{selectedRecord?.id}}</h5>
+    <button type="button" class="btn-close" aria-label="Close" (click)="modal.dismiss()"></button>
+  </div>
+  <div class="modal-body p-4">
+    <p><strong>Hora:</strong> {{ selectedRecord?.date | date:'shortTime' }}</p>
+    <p><strong>Cobrado:</strong> ${{ selectedRecord?.amountToCharge | number:'1.2-2' }}</p>
+    <p><strong>Entregado:</strong> ${{ selectedRecord?.cashProvided | number:'1.2-2' }}</p>
+    <p><strong>Cambio:</strong> ${{ selectedRecord?.changeReturned | number:'1.2-2' }}</p>
+    <hr>
+    <h6 class="fw-bold">Billetes/Monedas Utilizados:</h6>
+    <ul class="list-group list-group-flush mb-3" *ngIf="selectedRecord?.denominations?.length; else noDenominations">
+      <li class="list-group-item d-flex justify-content-between align-items-center" *ngFor="let den of selectedRecord.denominations">
+        <span>$ {{ den.valor | number:'1.2-2' }}</span>
+        <span class="badge bg-primary rounded-pill">{{ den.cantidad }}</span>
+      </li>
+    </ul>
+    <ng-template #noDenominations>
+      <p class="text-muted small">No se registró desglose de billetes y monedas.</p>
+    </ng-template>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" (click)="modal.dismiss()">Cerrar</button>
   </div>
 </ng-template>

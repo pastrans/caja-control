@@ -6,25 +6,8 @@ import { Router } from '@angular/router';
 import { MonedaBilletesComponent } from '../moneda-billetes/moneda-billetes.component';
 import { CierreCajaComponent } from '../cierre-caja/cierre-caja.component';
 import { SalidaEfectivoComponent } from '../salida-efectivo/salida-efectivo.component';
-
-interface CajaRecord {
-  id: number;
-  date: Date;
-  amountToCharge: number;
-  cashProvided: number;
-  changeReturned: number;
-  empleadoId: number;
-  empleadoNombre: string;
-  nota: string;
-}
-
-interface CashInOutRecord {
-  id: number;
-  type: 'Entrada' | 'Salida';
-  amount: number;
-  reason: string;
-  date: Date;
-}
+import { CajaRecord, CashInOutRecord, DenominationRecord } from '../../models/caja.model';
+import { Empleado } from '../../models/empleado.model';
 
 @Component({
   selector: 'app-caja',
@@ -45,7 +28,7 @@ export class CajaComponent implements OnInit {
   nextId = 1;
   nextCashId = 1;
 
-  empleadas = [
+  empleadas: Empleado[] = [
     { id: 1, nombre: 'Ana' },
     { id: 2, nombre: 'María' },
     { id: 3, nombre: 'Laura' },
@@ -143,6 +126,13 @@ export class CajaComponent implements OnInit {
     this.denominationsFormArray.controls.forEach(ctrl => ctrl.get('cantidad')?.setValue(0));
   }
 
+  selectedRecord: CajaRecord | null = null;
+
+  verDetalles(record: CajaRecord, modal: TemplateRef<any>) {
+    this.selectedRecord = record;
+    this.modalService.open(modal, { centered: true, size: 'md' });
+  }
+
   guardarCobro() {
     if (this.cajaForm.invalid) {
       alert('Por favor, completa todos los campos requeridos y asegúrate de que las cantidades sean válidas.');
@@ -157,6 +147,13 @@ export class CajaComponent implements OnInit {
     const empleadoId = this.cajaForm.get('empleado')?.value;
     const empleadoObj = this.empleadas.find(e => e.id === Number(empleadoId));
 
+    const denominations = this.denominationsFormArray.controls
+      .map(ctrl => ({
+        valor: ctrl.get('valor')?.value || 0,
+        cantidad: ctrl.get('cantidad')?.value || 0
+      }))
+      .filter(d => d.cantidad > 0);
+
     const record: CajaRecord = {
       id: this.nextId++,
       date: new Date(),
@@ -165,7 +162,8 @@ export class CajaComponent implements OnInit {
       changeReturned: this.changeReturned,
       empleadoId: empleadoObj ? empleadoObj.id : 0,
       empleadoNombre: empleadoObj ? empleadoObj.nombre : 'Desconocido',
-      nota: this.cajaForm.get('nota')?.value || ''
+      nota: this.cajaForm.get('nota')?.value || '',
+      denominations: denominations
     };
 
     this.records.unshift(record); // Añade al inicio de la tabla
