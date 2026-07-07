@@ -4,6 +4,7 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray } from '@angular
 import { NgbModal, NgbModalModule } from '@ng-bootstrap/ng-bootstrap';
 import { Router } from '@angular/router';
 import { MonedaBilletesComponent } from '../moneda-billetes/moneda-billetes.component';
+import { CajaRecord } from '../../models/caja.model';
 
 @Component({
   selector: 'app-abrir-caja',
@@ -21,6 +22,12 @@ export class AbrirCajaComponent implements OnInit {
   cajaForm!: FormGroup;
 
   ngOnInit() {
+    // If active session exists, go directly to caja
+    if (localStorage.getItem('activeCaja')) {
+      this.router.navigate(['/caja']);
+      return;
+    }
+
     this.cajaForm = this.fb.group({
       openingCash: [0.00],
       openingNote: [''],
@@ -67,7 +74,26 @@ export class AbrirCajaComponent implements OnInit {
   }
 
   guardarApertura() {
-    console.log('Datos enviados:', this.cajaForm.value);
+    const denominations = this.denominationsFormArray.controls
+      .map(ctrl => ({
+        valor: ctrl.get('valor')?.value || 0,
+        cantidad: ctrl.get('cantidad')?.value || 0
+      }))
+      .filter(d => d.cantidad > 0);
+
+    const session: CajaRecord = {
+      id: Date.now(),
+      opening: {
+        date: new Date(),
+        denominations: denominations,
+        cash: Number(this.cajaForm.get('openingCash')?.value) || 0,
+        note: this.cajaForm.get('openingNote')?.value || ''
+      },
+      transactions: [],
+      cashInOut: []
+    };
+
+    localStorage.setItem('activeCaja', JSON.stringify(session));
     this.router.navigate(['/caja']);
   }
 

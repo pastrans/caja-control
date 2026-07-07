@@ -202,7 +202,7 @@
     <hr>
     <h6 class="fw-bold">Billetes/Monedas Utilizados:</h6>
     <ul class="list-group list-group-flush mb-3" *ngIf="selectedRecord?.denominations?.length; else noDenominations">
-      <li class="list-group-item d-flex justify-content-between align-items-center" *ngFor="let den of selectedRecord.denominations">
+      <li class="list-group-item d-flex justify-content-between align-items-center" *ngFor="let den of selectedRecord?.denominations">
         <span>$ {{ den.valor | number:'1.2-2' }}</span>
         <span class="badge bg-primary rounded-pill">{{ den.cantidad }}</span>
       </li>

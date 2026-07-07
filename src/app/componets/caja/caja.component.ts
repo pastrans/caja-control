@@ -6,7 +6,7 @@ import { Router } from '@angular/router';
 import { MonedaBilletesComponent } from '../moneda-billetes/moneda-billetes.component';
 import { CierreCajaComponent } from '../cierre-caja/cierre-caja.component';
 import { SalidaEfectivoComponent } from '../salida-efectivo/salida-efectivo.component';
-import { CajaRecord, CashInOutRecord, DenominationRecord } from '../../models/caja.model';
+import { CajaRecord, CashInOutRecord, DenominationRecord, TransactionRecord } from '../../models/caja.model';
 import { Empleado } from '../../models/empleado.model';
 
 @Component({
@@ -23,10 +23,11 @@ export class CajaComponent implements OnInit {
   private router = inject(Router);
 
   cajaForm!: FormGroup;
-  records: CajaRecord[] = [];
+  records: TransactionRecord[] = [];
   cashRecords: CashInOutRecord[] = [];
   nextId = 1;
   nextCashId = 1;
+  activeSession!: CajaRecord;
 
   empleadas: Empleado[] = [
     { id: 1, nombre: 'Ana' },
@@ -36,6 +37,18 @@ export class CajaComponent implements OnInit {
   ];
 
   ngOnInit() {
+    const sessionData = localStorage.getItem('activeCaja');
+    if (!sessionData) {
+      this.router.navigate(['/abrir-caja']);
+      return;
+    }
+    
+    this.activeSession = JSON.parse(sessionData);
+    this.records = this.activeSession.transactions || [];
+    this.cashRecords = this.activeSession.cashInOut || [];
+    this.nextId = this.records.length > 0 ? Math.max(...this.records.map(r => r.id)) + 1 : 1;
+    this.nextCashId = this.cashRecords.length > 0 ? Math.max(...this.cashRecords.map(r => r.id)) + 1 : 1;
+
     this.initForm();
   }
 
@@ -110,6 +123,10 @@ export class CajaComponent implements OnInit {
           reason: result.reason,
           date: new Date()
         });
+        
+        // Save state
+        this.activeSession.cashInOut = this.cashRecords;
+        localStorage.setItem('activeCaja', JSON.stringify(this.activeSession));
       }
     }).catch(() => {
       // Modal descartado
@@ -126,9 +143,9 @@ export class CajaComponent implements OnInit {
     this.denominationsFormArray.controls.forEach(ctrl => ctrl.get('cantidad')?.setValue(0));
   }
 
-  selectedRecord: CajaRecord | null = null;
+  selectedRecord: TransactionRecord | null = null;
 
-  verDetalles(record: CajaRecord, modal: TemplateRef<any>) {
+  verDetalles(record: TransactionRecord, modal: TemplateRef<any>) {
     this.selectedRecord = record;
     this.modalService.open(modal, { centered: true, size: 'md' });
   }
@@ -154,7 +171,7 @@ export class CajaComponent implements OnInit {
       }))
       .filter(d => d.cantidad > 0);
 
-    const record: CajaRecord = {
+    const record: TransactionRecord = {
       id: this.nextId++,
       date: new Date(),
       amountToCharge: this.amountToCharge,
@@ -168,23 +185,23 @@ export class CajaComponent implements OnInit {
 
     this.records.unshift(record); // Añade al inicio de la tabla
     
+    // Save state
+    this.activeSession.transactions = this.records;
+    localStorage.setItem('activeCaja', JSON.stringify(this.activeSession));
+
     // Resetear formulario para siguiente cobro
-    this.cajaForm.reset({
-      empleado: '',
-      nota: '',
-      amountToCharge: 0.00,
-      cashProvided: 0.00
-    });
+    this.cajaForm.get('empleado')?.reset('');
+    this.cajaForm.get('nota')?.reset('');
+    this.cajaForm.get('amountToCharge')?.reset(0.00);
+    this.cajaForm.get('cashProvided')?.reset(0.00);
     this.denominationsFormArray.controls.forEach(ctrl => ctrl.get('cantidad')?.setValue(0));
   }
 
   descartar() {
-    this.cajaForm.reset({
-      empleado: '',
-      nota: '',
-      amountToCharge: 0.00,
-      cashProvided: 0.00
-    });
+    this.cajaForm.get('empleado')?.reset('');
+    this.cajaForm.get('nota')?.reset('');
+    this.cajaForm.get('amountToCharge')?.reset(0.00);
+    this.cajaForm.get('cashProvided')?.reset(0.00);
     this.denominationsFormArray.controls.forEach(ctrl => ctrl.get('cantidad')?.setValue(0));
   }
 }

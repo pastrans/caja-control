@@ -2,49 +2,58 @@
   <div class="modal-header bg-dark text-light border-secondary border-opacity-25 py-3">
     <h5 class="modal-title fs-5 fw-semibold">Cierre de caja</h5>
     <span class="badge bg-secondary bg-opacity-25 text-light-emphasis border border-secondary border-opacity-50 px-3 py-2 ms-auto rounded-2 small">
-      0 Cobros: $ 0.00
+      {{ totalTransactionsCount }} Cobros: $ {{ totalTransactionsAmount | number:'1.2-2' }}
     </span>
   </div>
 
   <div class="modal-body bg-dark text-light px-4">
     <div class="d-flex justify-content-between align-items-center mb-2">
       <span class="fs-5 fw-medium text-light">Efectivo</span>
-      <span class="fs-5 fw-semibold text-light">$ 2,611.57</span>
+      <span class="fs-5 fw-semibold text-light">$ {{ expectedCash | number:'1.2-2' }}</span>
     </div>
 
     <div class="row g-0 small text-white-50 mb-4">
       <div class="col-12 d-flex justify-content-between py-1 ps-3 border-start border-secondary border-opacity-25">
         <span>Apertura</span>
-        <span class="text-light-emphasis">$ 2,611.57</span>
+        <span class="text-light-emphasis">$ {{ openingAmount | number:'1.2-2' }}</span>
       </div>
       <div class="col-12 d-flex justify-content-between py-1 ps-3 border-start border-secondary border-opacity-25">
         <span><i class="bi bi-caret-right-fill small me-1"></i>Entradas / Salidas</span>
-        <span class="text-light-emphasis">+ $ 0.00</span>
+        <span class="text-light-emphasis">{{ totalInputsOutputs >= 0 ? '+' : '- ' }} $ {{ getAbs(totalInputsOutputs) | number:'1.2-2' }}</span>
       </div>
       <div class="col-12 d-flex justify-content-between py-1 ps-3 border-start border-secondary border-opacity-25">
         <span class="text-light">Contado</span>
-        <span class="text-light">$ 2,611.57</span>
+        <span class="text-light">$ {{ cashCount | number:'1.2-2' }}</span>
       </div>
       <div class="col-12 d-flex justify-content-between py-1 ps-3 border-start border-secondary border-opacity-25">
-        <span>Difference</span>
-        <span class="text-light-emphasis">$ 0.00</span>
+        <span>Diferencia</span>
+        <span class="fw-semibold" [ngClass]="{'text-danger': hasDifference, 'text-success': !hasDifference}">
+          {{ difference >= 0 ? '+' : '- ' }} $ {{ getAbs(difference) | number:'1.2-2' }}
+        </span>
       </div>
     </div>
 
     <hr class="border-secondary border-opacity-50 my-4">
 
+    <!-- Mensaje de diferencia -->
+    <div class="alert alert-warning py-2 small border-warning border-opacity-50 bg-warning bg-opacity-10 text-warning" *ngIf="hasDifference">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      Hay una diferencia de {{ difference >= 0 ? 'sobrante' : 'faltante' }} de $ {{ getAbs(difference) | number:'1.2-2' }}. Por favor, realiza el conteo de nuevo o ingresa una nota de cierre justificando la diferencia.
+    </div>
+
     <div class="mb-4">
       <label class="form-label text-white-50 small fw-medium mb-2">Efectivo contado</label>
       <div class="input-group">
-        <input type="text" 
+        <input type="number" 
                formControlName="cashCount"
+               step="0.01"
                class="form-control bg-secondary bg-opacity-10 text-light border-secondary border-opacity-50 py-2 px-3"
                [ngClass]="{'is-invalid': registerForm.get('cashCount')?.invalid && registerForm.get('cashCount')?.touched}">
-        <button class="btn btn-outline-secondary border-opacity-50 text-white-50 px-3" type="button" (click)="registerForm.get('cashCount')?.setValue('')">
-          <i class="bi bi-x-lg"></i>
+        <button class="btn btn-outline-secondary border-opacity-50 text-white-50 px-3" type="button" (click)="limpiarEfectivo()" title="Limpiar">
+          ×
         </button>
-        <button class="btn btn-secondary bg-opacity-25 border-secondary border-opacity-50 text-light px-3" type="button">
-          <i class="bi bi-cash"></i>
+        <button class="btn btn-secondary bg-opacity-25 border-secondary border-opacity-50 text-light px-3" type="button" (click)="abrirModalBilletes(modalBilletes)" title="Desglose de Efectivo">
+          <i class="bi bi-cash-stack">💵</i>
         </button>
       </div>
     </div>
@@ -54,7 +63,11 @@
       <textarea class="form-control bg-secondary bg-opacity-10 text-light border-secondary border-opacity-50 py-2 px-3" 
                 formControlName="closingNote"
                 rows="3" 
+                [ngClass]="{'is-invalid': registerForm.get('closingNote')?.invalid && registerForm.get('closingNote')?.touched}"
                 placeholder="Agrega una nota para el cierre de caja..."></textarea>
+      <div *ngIf="registerForm.get('closingNote')?.hasError('required') && registerForm.get('closingNote')?.touched" class="invalid-feedback">
+        La nota es obligatoria cuando hay una diferencia.
+      </div>
     </div>
   </div>
 
@@ -71,3 +84,19 @@
     </button>
   </div>
 </form>
+
+<!-- Modal para Monedas y Billetes -->
+<ng-template #modalBilletes let-modal>
+  <div class="modal-header">
+    <h5 class="modal-title fw-bold">Efectivo Contado</h5>
+    <button type="button" class="btn-close" aria-label="Close" (click)="modal.dismiss()"></button>
+  </div>
+  <div class="modal-body p-4" [formGroup]="registerForm">
+    <app-moneda-billetes [denominationsArray]="denominationsFormArray"></app-moneda-billetes>
+
+    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+      <button type="button" class="btn btn-primary px-4" (click)="confirmarDesglose(modal)">Confirmar</button>
+      <div class="fs-5 fw-bold text-dark">Total Contado ${{totalModal | number:'1.2-2'}}</div>
+    </div>
+  </div>
+</ng-template>

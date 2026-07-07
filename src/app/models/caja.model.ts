@@ -3,7 +3,29 @@ export interface DenominationRecord {
   cantidad: number;
 }
 
-export interface CajaRecord {
+export interface CashInOutRecord {
+  id: number;
+  type: 'Entrada' | 'Salida';
+  amount: number;
+  reason: string;
+  date: Date;
+}
+
+export interface Opening {
+  date: Date;
+  denominations: DenominationRecord[];
+  cash: number;
+  note?: string;
+}
+
+export interface Closing {
+  date: Date;
+  denominations: DenominationRecord[];
+  cashProvided: number;
+  difference: number;
+}
+
+export interface TransactionRecord {
   id: number;
   date: Date;
   amountToCharge: number;
@@ -15,10 +37,10 @@ export interface CajaRecord {
   denominations: DenominationRecord[];
 }
 
-export interface CashInOutRecord {
+export interface CajaRecord {
   id: number;
-  type: 'Entrada' | 'Salida';
-  amount: number;
-  reason: string;
-  date: Date;
+  opening: Opening;
+  closing?: Closing;
+  transactions: TransactionRecord[];
+  cashInOut: CashInOutRecord[];
 }
