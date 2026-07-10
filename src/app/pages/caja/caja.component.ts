@@ -3,9 +3,9 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { NgbModal, NgbModalModule } from '@ng-bootstrap/ng-bootstrap';
 import { Router } from '@angular/router';
-import { MonedaBilletesComponent } from '../moneda-billetes/moneda-billetes.component';
-import { CierreCajaComponent } from '../cierre-caja/cierre-caja.component';
-import { SalidaEfectivoComponent } from '../salida-efectivo/salida-efectivo.component';
+import { MonedaBilletesComponent } from '../../components/moneda-billetes/moneda-billetes.component';
+import { CierreCajaComponent } from '../../components/cierre-caja/cierre-caja.component';
+import { SalidaEfectivoComponent } from '../../components/salida-efectivo/salida-efectivo.component';
 import { CajaRecord, CashInOutRecord, DenominationRecord, TransactionRecord } from '../../models/caja.model';
 import { Empleado } from '../../models/empleado.model';
 

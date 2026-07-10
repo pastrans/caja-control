@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray } from '@angular/forms';
 import { NgbModal, NgbModalModule } from '@ng-bootstrap/ng-bootstrap';
 import { Router } from '@angular/router';
-import { MonedaBilletesComponent } from '../moneda-billetes/moneda-billetes.component';
+import { MonedaBilletesComponent } from '../../components/moneda-billetes/moneda-billetes.component';
 import { CajaRecord } from '../../models/caja.model';
 
 @Component({
