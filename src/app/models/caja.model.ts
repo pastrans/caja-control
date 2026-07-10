@@ -9,6 +9,7 @@ export interface CashInOutRecord {
   amount: number;
   reason: string;
   date: Date;
+  note?: string;
 }
 
 export interface Opening {
@@ -23,6 +24,7 @@ export interface Closing {
   denominations: DenominationRecord[];
   cashProvided: number;
   difference: number;
+  note?: string;
 }
 
 export interface TransactionRecord {

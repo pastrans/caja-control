@@ -32,6 +32,11 @@ export class CierreCajaComponent implements OnInit {
     const sessionData = localStorage.getItem('activeCaja');
     if (sessionData) {
       this.activeSession = JSON.parse(sessionData);
+
+      // ¡CORRECCIÓN! Convertir las cadenas de fecha a objetos Date al cargar la sesión.
+      this.activeSession.opening.date = new Date(this.activeSession.opening.date);
+      (this.activeSession.transactions || []).forEach(t => t.date = new Date(t.date));
+      (this.activeSession.cashInOut || []).forEach(m => m.date = new Date(m.date));
       
       this.openingAmount = this.activeSession.opening.cash || 0;
       
@@ -138,8 +143,9 @@ export class CierreCajaComponent implements OnInit {
         const closing: Closing = {
           date: new Date(),
           denominations: denominations,
-          cashProvided: cashProvided,
-          difference: this.difference
+          cashProvided: cashProvided,          
+          difference: this.difference,
+          note: this.registerForm.get('closingNote')?.value
         };
         
         this.activeSession.closing = closing;
@@ -147,7 +153,17 @@ export class CierreCajaComponent implements OnInit {
         const historialData = localStorage.getItem('historialCaja');
         let historial: CajaRecord[] = [];
         if (historialData) {
-          historial = JSON.parse(historialData);
+          const historialRaw: CajaRecord[] = JSON.parse(historialData);
+          // ¡CORRECCIÓN! Asegurarse de que las fechas del historial existente también sean objetos Date
+          historial = historialRaw.map(registro => {
+            registro.opening.date = new Date(registro.opening.date);
+            if (registro.closing) {
+              registro.closing.date = new Date(registro.closing.date);
+            }
+            registro.transactions = (registro.transactions || []).map(t => ({...t, date: new Date(t.date)}));
+            registro.cashInOut = (registro.cashInOut || []).map(m => ({...m, date: new Date(m.date)}));
+            return registro;
+          });
         }
         
         historial.push(this.activeSession);
