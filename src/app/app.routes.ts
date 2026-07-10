@@ -1,9 +1,9 @@
 import { Routes } from '@angular/router';
-import { CajaComponent } from './componets/caja/caja.component';
-import { AbrirCajaComponent } from './componets/abrir-caja/abrir-caja.component';
-import { HistorialComponent } from './componets/historial/historial.component';
-import { LoginComponent } from './componets/login/login.component';
-import { MainLayoutComponent } from './componets/main-layout/main-layout.component';
+import { CajaComponent } from './components/caja/caja.component';
+import { AbrirCajaComponent } from './components/abrir-caja/abrir-caja.component';
+import { HistorialComponent } from './components/historial/historial.component';
+import { LoginComponent } from './components/login/login.component';
+import { MainLayoutComponent } from './components/main-layout/main-layout.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
