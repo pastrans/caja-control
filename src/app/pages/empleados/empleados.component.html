@@ -1,0 +1,85 @@
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold mb-0">Gestión de Empleados</h2>
+    <button class="btn btn-primary" (click)="openModal(empleadoModal)">
+      <i class="bi bi-plus-lg"></i> Agregar Empleado
+    </button>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Nombre</th>
+            <th scope="col">Apellido</th>
+            <th scope="col">Teléfono</th>
+            <th scope="col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let empleado of empleados">
+            <th scope="row">{{ empleado.id }}</th>
+            <td>{{ empleado.nombre }}</td>
+            <td>{{ empleado.apellido }}</td>
+            <td>{{ empleado.telefono }}</td>
+            <td>
+              <button class="btn btn-sm btn-outline-secondary me-2" (click)="openModal(empleadoModal, empleado)">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger" (click)="onDelete(empleado.id)">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="empleados.length === 0">
+            <td colspan="5" class="text-center text-muted py-4">No hay empleados registrados.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<ng-template #empleadoModal let-modal>
+  <div class="modal-header">
+    <h4 class="modal-title">{{ isEditMode ? 'Editar' : 'Agregar' }} Empleado</h4>
+    <button type="button" class="btn-close" aria-label="Close" (click)="modal.dismiss('Cross click')"></button>
+  </div>
+  <div class="modal-body">
+    <form [formGroup]="empleadoForm" (ngSubmit)="onSubmit()">
+      <div class="mb-3">
+        <label for="nombre" class="form-label">Nombre</label>
+        <input type="text" id="nombre" class="form-control" formControlName="nombre"
+          [ngClass]="{ 'is-invalid': empleadoForm.get('nombre')?.invalid && empleadoForm.get('nombre')?.touched }">
+        <div *ngIf="empleadoForm.get('nombre')?.invalid && empleadoForm.get('nombre')?.touched" class="invalid-feedback">
+          El nombre es requerido.
+        </div>
+      </div>
+      <div class="mb-3">
+        <label for="apellido" class="form-label">Apellido</label>
+        <input type="text" id="apellido" class="form-control" formControlName="apellido"
+          [ngClass]="{ 'is-invalid': empleadoForm.get('apellido')?.invalid && empleadoForm.get('apellido')?.touched }">
+        <div *ngIf="empleadoForm.get('apellido')?.invalid && empleadoForm.get('apellido')?.touched" class="invalid-feedback">
+          El apellido es requerido.
+        </div>
+      </div>
+      <div class="mb-3">
+        <label for="telefono" class="form-label">Número de Teléfono</label>
+        <input type="tel" id="telefono" class="form-control" formControlName="telefono"
+          [ngClass]="{ 'is-invalid': empleadoForm.get('telefono')?.invalid && empleadoForm.get('telefono')?.touched }">
+        <div *ngIf="empleadoForm.get('telefono')?.errors?.['required'] && empleadoForm.get('telefono')?.touched" class="invalid-feedback">
+          El número de teléfono es requerido.
+        </div>
+        <div *ngIf="empleadoForm.get('telefono')?.errors?.['pattern'] && empleadoForm.get('telefono')?.touched" class="invalid-feedback">
+          Ingrese un número de teléfono válido.
+        </div>
+      </div>
+    </form>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" (click)="modal.dismiss('cancel click')">Cancelar</button>
+    <button type="button" class="btn btn-primary" (click)="onSubmit()" [disabled]="empleadoForm.invalid">Guardar</button>
+  </div>
+</ng-template>
