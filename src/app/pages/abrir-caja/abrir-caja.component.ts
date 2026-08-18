@@ -83,6 +83,7 @@ export class AbrirCajaComponent implements OnInit {
 
     const session: CajaRecord = {
       id: Date.now(),
+      status: 'OPEN',
       opening: {
         date: new Date(),
         denominations: denominations,

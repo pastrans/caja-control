@@ -1,163 +1,242 @@
-<div class="container-fluid mt-4">
-  <h2 class="mb-4 fw-bold mb-0">Historial de Cajas</h2>
+<div class="container-fluid mt-4" data-bs-theme="dark">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+    <div>
+      <h2 class="fw-bold mb-1">Historial de Cajas</h2>
+      <p class="text-secondary small mb-0">Consulta de aperturas, cierres y movimientos</p>
+    </div>
+    <button class="btn btn-outline-light" (click)="cargarHistorial()">
+      <i class="bi bi-arrow-clockwise"></i> Refrescar
+    </button>
+  </div>
 
-  <div class="table-responsive">
-    <table class="table table-striped table-hover align-middle">
-      <thead class="table-light">
-        <tr>
-          <th>Apertura</th>
-          <th>Cierre</th>
-          <th>Nota Apertura</th>
-          <th>Nota Cierre</th>
-          <th>Monto Apertura</th>
-          <th>Entradas / Salidas</th>
-          <th>Contado</th>
-          <th>Diferencia</th>
-          <th class="text-center">Opciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        @if (historial.length > 0) {
-          @for (registro of historial; track registro.opening.date) {
+  @if (errorMessage()) {
+    <div class="alert alert-danger alert-dismissible fade show small" role="alert">
+      <i class="bi bi-exclamation-octagon me-1"></i> {{ errorMessage() }}
+      <button type="button" class="btn-close" (click)="errorMessage.set(null)" aria-label="Close"></button>
+    </div>
+  }
+
+  <div class="card shadow-sm border-secondary bg-dark-subtle">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 table-dark text-nowrap">
+        <thead>
+          <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Apertura</th>
+            <th scope="col">Cierre</th>
+            <th scope="col">Monto Inicial</th>
+            <th scope="col">Entradas / Salidas</th>
+            <th scope="col">Efectivo Cierre</th>
+            <th scope="col">Diferencia</th>
+            <th scope="col">Estado</th>
+            <th scope="col" class="text-end">Opciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (isLoading()) {
             <tr>
-              <td>{{ registro.opening.date | date:'dd/MM/yy h:mm a' }}</td>
-              <td>{{ registro.closing?.date | date:'dd/MM/yy h:mm a' }}</td>
-              <td>{{ registro.opening.note }}</td>
-              <td>{{ registro.closing?.note }}</td>
-              <td>{{ registro.opening.cash | currency:'USD':'symbol':'1.2-2' }}</td>
-              <td>
-                <span class="text-success">{{ calcularTotal(registro.cashInOut, 'Entrada') | currency:'USD':'symbol':'1.2-2' }}</span> /
-                <span class="text-danger">{{ calcularTotal(registro.cashInOut, 'Salida') | currency:'USD':'symbol':'1.2-2' }}</span>
-              </td>
-              <td>{{ registro.closing?.cashProvided | currency:'USD':'symbol':'1.2-2' }}</td>
-              <td>{{ registro.closing?.difference | currency:'USD':'symbol':'1.2-2' }}</td>
-              <td class="text-center">
-                <button class="btn btn-sm btn-info me-1" title="Ver Transacciones"
-                        (click)="abrirModal(transaccionesModal, registro)">
-                  <i class="bi bi-receipt"></i>
-                </button>
-                <button class="btn btn-sm btn-warning" title="Ver Movimientos"
-                        (click)="abrirModal(movimientosModal, registro)">
-                  <i class="bi bi-arrow-down-up"></i>
-                </button>
+              <td colspan="9" class="text-center py-5 text-secondary">
+                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                Cargando historial...
               </td>
             </tr>
+          } @else {
+            @for (registro of historial(); track registro.id) {
+              <tr>
+                <th scope="row" class="text-secondary">#{{ registro.id }}</th>
+                <td>
+                  {{ registro.opening.date | date:'dd/MM/yy h:mm a' }}
+                  <i class="bi bi-info-circle text-secondary ms-1" [title]="registro.opening.note" *ngIf="registro.opening.note"></i>
+                </td>
+                <td>
+                  @if (registro.closing) {
+                    {{ registro.closing.date | date:'dd/MM/yy h:mm a' }}
+                    <i class="bi bi-info-circle text-secondary ms-1" [title]="registro.closing.note" *ngIf="registro.closing.note"></i>
+                  } @else {
+                    <span class="text-muted fst-italic">Pendiente</span>
+                  }
+                </td>
+                <td>{{ registro.opening.cash | currency:'USD':'symbol':'1.2-2' }}</td>
+                <td>
+                  <span class="text-success"><i class="bi bi-arrow-down-short"></i>{{ calcularTotal(registro.cashInOut, 'Entrada') | currency:'USD':'symbol':'1.2-2' }}</span> /
+                  <span class="text-danger"><i class="bi bi-arrow-up-short"></i>{{ calcularTotal(registro.cashInOut, 'Salida') | currency:'USD':'symbol':'1.2-2' }}</span>
+                </td>
+                <td>{{ (registro.closing?.cashProvided || 0) | currency:'USD':'symbol':'1.2-2' }}</td>
+                <td>
+                  @if (registro.closing) {
+                    <span [class.text-danger]="registro.closing.difference < 0" [class.text-success]="registro.closing.difference >= 0">
+                      {{ registro.closing.difference | currency:'USD':'symbol':'1.2-2' }}
+                    </span>
+                  } @else {
+                    -
+                  }
+                </td>
+                <td>
+                  <span class="badge" [ngClass]="registro.status === 'OPEN' ? 'bg-success text-dark' : 'bg-secondary text-light'">
+                    {{ registro.status === 'OPEN' ? 'Abierta' : 'Cerrada' }}
+                  </span>
+                </td>
+                <td class="text-end">
+                  <button class="btn btn-sm btn-outline-info me-2" title="Ver Transacciones" (click)="abrirModal(transaccionesModal, registro)">
+                    <i class="bi bi-receipt"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-warning" title="Ver Movimientos Extra" (click)="abrirModal(movimientosModal, registro)">
+                    <i class="bi bi-arrow-down-up"></i>
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="9" class="text-center text-secondary py-5">
+                  <i class="bi bi-clock-history display-6 d-block mb-2"></i>
+                  No hay registros de cajas en el historial.
+                </td>
+              </tr>
+            }
           }
-        } @else {
-          <tr>
-            <td colspan="9" class="text-center p-4">No hay registros de cajas.</td>
-          </tr>
-        }
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación -->
+    @if (totalRecords() > pageSize()) {
+      <div class="card-footer bg-dark border-secondary d-flex justify-content-between align-items-center py-3">
+        <span class="small text-secondary">
+          Total: <strong>{{ totalRecords() }}</strong> registros
+        </span>
+        <ngb-pagination
+          [collectionSize]="totalRecords()"
+          [page]="currentPage()"
+          [pageSize]="pageSize()"
+          [maxSize]="5"
+          [rotate]="true"
+          [boundaryLinks]="true"
+          (pageChange)="onPageChange($event)"
+          size="sm"
+          class="mb-0"
+        ></ngb-pagination>
+      </div>
+    }
   </div>
 </div>
 
-<!-- Modal Transacciones -->
+<!-- Modal Transacciones (Modo Oscuro) -->
 <ng-template #transaccionesModal let-modal>
-  <div class="modal-header">
-    <h5 class="modal-title" id="transaccionesModalLabel">Detalle de Transacciones</h5>
-    <button type="button" class="btn-close" (click)="modal.dismiss()" aria-label="Close"></button>
+  <div class="modal-header bg-dark text-light border-secondary">
+    <h5 class="modal-title fw-bold"><i class="bi bi-receipt me-2"></i>Detalle de Transacciones</h5>
+    <button type="button" class="btn-close btn-close-white" (click)="modal.dismiss()"></button>
   </div>
-  @if (registroSeleccionado) {
-    <div class="modal-body">
-      <p><strong>Caja del:</strong> {{ registroSeleccionado.opening.date | date:'dd/MM/yyyy h:mm a' }}</p>
-      @if (registroSeleccionado.transactions && registroSeleccionado.transactions.length > 0) {
-        <div class="accordion" id="transaccionesAccordion">
-        @for (transaccion of registroSeleccionado.transactions; track transaccion.id) {
-          <div class="accordion-item">
-            <h2 class="accordion-header" [id]="'heading' + transaccion.id">
-              <button class="accordion-button" type="button" (click)="toggleTransaccion(transaccion)"
-                      [class.collapsed]="transaccionExpandida !== transaccion"
-                      aria-expanded="false" [attr.aria-controls]="'collapse' + transaccion.id">
-                <div class="d-flex justify-content-between w-100">
-                  <span>Transacción #{{ transaccion.id }}</span>
-                  <span class="fw-bold me-3">{{ transaccion.amountToCharge | currency:'USD':'symbol':'1.2-2' }}</span>
-                  <span class="text-muted me-3">{{ transaccion.date | date:'h:mm:ss a' }}</span>
-                </div>
-              </button>
-            </h2>
-            <div [id]="'collapse' + transaccion.id" class="accordion-collapse collapse"
-                 [class.show]="transaccionExpandida === transaccion" [attr.aria-labelledby]="'heading' + transaccion.id">
-              <div class="accordion-body">
-                <div class="row">
-                  <div class="col-md-6">
-                    <p><strong>Hora:</strong> {{ transaccion.date | date:'h:mm:ss a' }}</p>
-                    <p><strong>Monto a Cobrar:</strong> {{ transaccion.amountToCharge | currency }}</p>
-                    <p><strong>Efectivo Entregado:</strong> {{ transaccion.cashProvided | currency }}</p>
-                    <p><strong>Cambio:</strong> {{ transaccion.changeReturned | currency }}</p>
-                    <p><strong>Empleado:</strong> {{ transaccion.empleadoNombre }}</p>
-                    @if(transaccion.nota){
-                      <p><strong>Nota:</strong> {{ transaccion.nota }}</p>
-                    }
+  <div class="modal-body bg-dark text-light">
+    @if (registroSeleccionado()) {
+      <div class="mb-3 p-3 bg-dark-subtle border border-secondary rounded">
+        <p class="mb-1 small text-secondary">Apertura de Caja</p>
+        <p class="mb-0 fw-semibold">{{ registroSeleccionado()?.opening?.date | date:'dd/MM/yyyy h:mm a' }}</p>
+      </div>
+      
+      @if (registroSeleccionado()?.transactions?.length) {
+        <div class="accordion accordion-flush bg-dark" id="transaccionesAccordion">
+           @for (transaccion of registroSeleccionado()?.transactions; track transaccion.id; let i = $index) {            <div class="accordion-item bg-dark text-light border-secondary">
+              <h2 class="accordion-header">
+                <button class="accordion-button bg-dark text-light border-bottom border-secondary shadow-none" 
+                        [class.collapsed]="transaccionExpandida() !== transaccion"
+                        type="button" 
+                        (click)="toggleTransaccion(transaccion)">
+                  <div class="d-flex justify-content-between w-100 align-items-center">
+                    <span class="fw-semibold">Transacción {{ i + 1 }}</span>
+                    <span class="badge bg-primary ms-3 me-auto">{{ transaccion.amountToCharge | currency:'USD':'symbol':'1.2-2' }}</span>
+                    <span class="small text-secondary me-3"><i class="bi bi-clock me-1"></i>{{ transaccion.date | date:'h:mm a' }}</span>
                   </div>
-                  <div class="col-md-6">
-                    <h6><strong>Denominaciones Recibidas</strong></h6>
-                    @if (transaccion.denominations && transaccion.denominations.length > 0) {
-                      <ul class="list-group list-group-flush">
-                        @for(denom of transaccion.denominations; track denom.valor){
-                          @if(denom.cantidad > 0){
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                              {{ denom.valor | currency:'USD':'symbol':'1.0-0' }}
-                              <span class="badge bg-primary rounded-pill">{{ denom.cantidad }}</span>
-                            </li>
+                </button>
+              </h2>
+              <div class="accordion-collapse collapse" [class.show]="transaccionExpandida() === transaccion">
+                <div class="accordion-body bg-dark-subtle border-bottom border-secondary">
+                  <div class="row g-3">
+                    <div class="col-md-6 border-end border-secondary">
+                      <p class="small mb-1 text-secondary">Información General</p>
+                      <div class="d-flex justify-content-between mb-1"><span class="text-light">Monto Cobrado:</span> <strong class="text-primary">{{ transaccion.amountToCharge | currency }}</strong></div>
+                      <div class="d-flex justify-content-between mb-1"><span class="text-light">Efectivo Recibido:</span> <strong>{{ transaccion.cashProvided | currency }}</strong></div>
+                      <div class="d-flex justify-content-between mb-1"><span class="text-light">Cambio:</span> <strong class="text-warning">{{ transaccion.changeReturned | currency }}</strong></div>
+                      <div class="d-flex justify-content-between mb-1"><span class="text-light">Empleado:</span> <span class="text-end">{{ transaccion.empleadoNombre }}</span></div>
+                      @if(transaccion.nota){
+                        <div class="mt-2 p-2 bg-dark rounded border border-secondary small">
+                          <strong>Nota:</strong> {{ transaccion.nota }}
+                        </div>
+                      }
+                    </div>
+                    <div class="col-md-6">
+                      <p class="small mb-2 text-secondary">Denominaciones Recibidas</p>
+                      @if (transaccion.denominations.length > 0) {
+                        <div class="d-flex flex-wrap gap-2">
+                          @for(denom of transaccion.denominations; track denom.valor) {
+                            @if(denom.cantidad > 0) {
+                              <span class="badge bg-secondary border border-light text-light d-flex align-items-center gap-2 p-2">
+                                {{ denom.valor | currency:'USD':'symbol':'1.2-2' }}
+                                <span class="badge bg-light text-dark rounded-pill">{{ denom.cantidad }}</span>
+                              </span>
+                            }
                           }
-                        }
-                      </ul>
-                    } @else {
-                      <p class="text-muted">No se especificaron denominaciones.</p>
-                    }
+                        </div>
+                      } @else {
+                        <p class="small text-muted fst-italic">No se detallaron denominaciones.</p>
+                      }
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        }
+          }
         </div>
       } @else {
-        <p class="text-center p-4">No hay transacciones en este período.</p>
+        <div class="text-center p-4 border border-secondary rounded">
+          <p class="text-muted mb-0">No se registraron transacciones de venta en este período.</p>
+        </div>
       }
-    </div>
-  }
-  <div class="modal-footer">
-    <button type="button" class="btn btn-secondary" (click)="modal.dismiss()">Cerrar</button>
+    }
+  </div>
+  <div class="modal-footer bg-dark border-secondary">
+    <button type="button" class="btn btn-outline-light" (click)="modal.dismiss()">Cerrar</button>
   </div>
 </ng-template>
 
-<!-- Modal Movimientos -->
+<!-- Modal Movimientos (Modo Oscuro) -->
 <ng-template #movimientosModal let-modal>
-  <div class="modal-header">
-    <h5 class="modal-title" id="movimientosModalLabel">Detalle de Entradas y Salidas</h5>
-    <button type="button" class="btn-close" (click)="modal.dismiss()" aria-label="Close"></button>
+  <div class="modal-header bg-dark text-light border-secondary">
+    <h5 class="modal-title fw-bold"><i class="bi bi-arrow-down-up me-2"></i>Entradas y Salidas de Efectivo</h5>
+    <button type="button" class="btn-close btn-close-white" (click)="modal.dismiss()"></button>
   </div>
-  @if (registroSeleccionado) {
-    <div class="modal-body">
-        <p><strong>Caja del:</strong> {{ registroSeleccionado.opening.date | date:'dd/MM/yyyy h:mm a' }}</p>
-        <div class="table-responsive">
-          <table class="table table-sm table-striped table-hover">
-            <thead class="table-light">
+  <div class="modal-body bg-dark text-light">
+    @if (registroSeleccionado()) {
+      <div class="table-responsive">
+        <table class="table table-sm align-middle table-dark border-secondary">
+          <thead class="table-secondary">
+            <tr>
+              <th>Tipo</th>
+              <th>Descripción</th>
+              <th class="text-end">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (movimiento of registroSeleccionado()?.cashInOut; track movimiento.id) {
               <tr>
-                <th>Tipo</th>
-                <th>Descripción</th>
-                <th>Monto</th>
+                <td>
+                  @if (movimiento.type === 'Entrada') {
+                    <span class="badge bg-success-subtle text-success"><i class="bi bi-arrow-down-short"></i> Entrada</span>
+                  } @else {
+                    <span class="badge bg-danger-subtle text-danger"><i class="bi bi-arrow-up-short"></i> Salida</span>
+                  }
+                </td>
+                <td class="small">{{ movimiento.reason }}</td>
+                <td class="text-end fw-semibold">{{ movimiento.amount | currency:'USD':'symbol':'1.2-2' }}</td>
               </tr>
-            </thead>
-            <tbody>
-              @for (movimiento of registroSeleccionado.cashInOut; track $index) {
-                <tr [class.table-success]="movimiento.type === 'Entrada'" [class.table-danger]="movimiento.type === 'Salida'">
-                  <td>{{ movimiento.type }}</td>
-                  <td>{{ movimiento.reason }}</td>
-                  <td>{{ movimiento.amount | currency:'USD':'symbol':'1.2-2' }}</td>
-                </tr>
-              } @empty {
-                <tr><td colspan="3" class="text-center p-4">No hay movimientos en este período.</td></tr>
-              }
-            </tbody>
-          </table>
-        </div>
-    </div>
-  }
-  <div class="modal-footer">
-    <button type="button" class="btn btn-secondary" (click)="modal.dismiss()">Cerrar</button>
+            } @empty {
+              <tr><td colspan="3" class="text-center text-muted p-4">No se registraron movimientos extra.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+  <div class="modal-footer bg-dark border-secondary">
+    <button type="button" class="btn btn-outline-light" (click)="modal.dismiss()">Cerrar</button>
   </div>
 </ng-template>

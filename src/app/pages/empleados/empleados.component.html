@@ -1,9 +1,9 @@
-<div class="container mt-4">
+<div class="container mt-4" data-bs-theme="dark">
   <!-- Encabezado y Acciones -->
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
     <div>
       <h2 class="fw-bold mb-1">Gestión de Empleados</h2>
-      <p class="text-muted small mb-0">Administración y control del personal</p>
+      <p class="text-secondary small mb-0">Administración y control del personal operativo</p>
     </div>
     <button class="btn btn-primary d-flex align-items-center gap-2" (click)="openModal(empleadoModal)">
       <i class="bi bi-person-plus-fill"></i> Agregar Empleado
@@ -18,15 +18,15 @@
     </div>
   }
 
-  <!-- Filtro por Estado (Habilitados / Inhabilitados) -->
-  <div class="card border-0 shadow-sm mb-3">
+  <!-- Filtro por Estado -->
+  <div class="card border-secondary shadow-sm mb-3 bg-dark-subtle">
     <div class="card-body py-2 d-flex flex-wrap align-items-center justify-content-between gap-2">
-      <span class="small fw-semibold text-muted">Filtrar por estado:</span>
+      <span class="small fw-semibold text-secondary">Filtrar por estado:</span>
       <div class="btn-group btn-group-sm" role="group">
         <button 
           type="button" 
           class="btn" 
-          [class.btn-dark]="filtroEstado() === 'todos'" 
+          [class.btn-light]="filtroEstado() === 'todos'" 
           [class.btn-outline-secondary]="filtroEstado() !== 'todos'"
           (click)="setFiltro('todos')"
         >
@@ -54,11 +54,11 @@
     </div>
   </div>
 
-  <!-- Tabla de Datos -->
-  <div class="card shadow-sm border-0">
+  <!-- Tabla de Empleados en Modo Oscuro -->
+  <div class="card shadow-sm border-secondary bg-dark-subtle">
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
-        <thead class="table-light">
+      <table class="table table-hover align-middle mb-0 table-dark">
+        <thead>
           <tr>
             <th scope="col" style="width: 80px;">ID</th>
             <th scope="col">Nombre</th>
@@ -70,7 +70,7 @@
         <tbody>
           @if (isLoading()) {
             <tr>
-              <td colspan="5" class="text-center py-5 text-muted">
+              <td colspan="5" class="text-center py-5 text-secondary">
                 <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
                 Cargando empleados...
               </td>
@@ -78,43 +78,43 @@
           } @else {
             @for (empleado of empleadosFiltrados(); track empleado.id) {
               <tr>
-                <th scope="row" class="text-muted">#{{ empleado.id }}</th>
+                <th scope="row" class="text-secondary">#{{ empleado.id }}</th>
                 <td class="fw-semibold">{{ empleado.nombre }}</td>
                 <td>
                   @if (empleado.habilitado) {
                     <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
-                      <i class="bi bi-dot"></i> Habilitado
+                      <i class="bi bi-dot"></i> Activo
                     </span>
                   } @else {
                     <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
-                      <i class="bi bi-dot"></i> Inhabilitado
+                      <i class="bi bi-dot"></i> Inactivo
                     </span>
                   }
                 </td>
-                <td class="small text-muted">
+                <td class="small text-secondary">
                   {{ empleado.creadoEn | date:'shortDate' }}
                 </td>
                 <td class="text-end">
                   <button 
-                    class="btn btn-sm btn-outline-secondary me-2" 
+                    class="btn btn-sm btn-outline-warning me-2" 
                     title="Editar"
                     (click)="openModal(empleadoModal, empleado)"
                   >
-                    <i class="bi bi-pencil"></i>
+                    <i class="bi bi-pencil-fill"></i>
                   </button>
                   <button 
                     class="btn btn-sm btn-outline-danger" 
                     title="Eliminar"
                     (click)="onDelete(empleado.id)"
                   >
-                    <i class="bi bi-trash"></i>
+                    <i class="bi bi-trash-fill"></i>
                   </button>
                 </td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="5" class="text-center text-muted py-5">
-                  <i class="bi bi-people display-6 d-block mb-2 text-secondary"></i>
+                <td colspan="5" class="text-center text-secondary py-5">
+                  <i class="bi bi-people display-6 d-block mb-2"></i>
                   No se encontraron empleados registrados.
                 </td>
               </tr>
@@ -126,8 +126,8 @@
 
     <!-- Paginación Footer -->
     @if (totalRecords() > pageSize()) {
-      <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3 border-top">
-        <span class="small text-muted">
+      <div class="card-footer bg-dark border-secondary d-flex justify-content-between align-items-center py-3">
+        <span class="small text-secondary">
           Total: <strong>{{ totalRecords() }}</strong> registros
         </span>
         <ngb-pagination
@@ -146,22 +146,22 @@
   </div>
 </div>
 
-<!-- Modal para Crear / Editar -->
+<!-- Modal para Crear / Editar en Modo Oscuro -->
 <ng-template #empleadoModal let-modal>
-  <div class="modal-header">
+  <div class="modal-header bg-dark text-light border-secondary">
     <h5 class="modal-title fw-bold">
-      <i class="bi" [ngClass]="isEditMode ? 'bi-pencil-square' : 'bi-plus-circle'"></i>
-      {{ isEditMode ? 'Editar' : 'Agregar' }} Empleado
+      <i class="bi" [ngClass]="isEditMode ? 'bi-pencil-square' : 'bi-person-plus-fill'"></i>
+      {{ isEditMode ? 'Editar' : 'Nuevo' }} Empleado
     </h5>
-    <button type="button" class="btn-close" aria-label="Close" (click)="modal.dismiss('Cross click')"></button>
+    <button type="button" class="btn-close btn-close-white" aria-label="Close" (click)="modal.dismiss()"></button>
   </div>
-  <div class="modal-body">
+  <div class="modal-body bg-dark text-light">
     @if (empleadoForm) {
       <form [formGroup]="empleadoForm" (ngSubmit)="onSubmit()">
         <div class="mb-3">
           <label for="nombre" class="form-label small fw-semibold">Nombre Completo</label>
           <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-person"></i></span>
+            <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-person"></i></span>
             <input 
               type="text" 
               id="nombre" 
@@ -172,7 +172,7 @@
             >
           </div>
           @if (empleadoForm.get('nombre')?.invalid && empleadoForm.get('nombre')?.touched) {
-            <div class="text-danger small mt-1">
+            <div class="invalid-feedback d-block">
               El nombre es obligatorio y debe tener al menos 2 caracteres.
             </div>
           }
@@ -180,8 +180,8 @@
       </form>
     }
   </div>
-  <div class="modal-footer">
-    <button type="button" class="btn btn-outline-secondary" (click)="modal.dismiss('cancel')">
+  <div class="modal-footer bg-dark border-secondary">
+    <button type="button" class="btn btn-outline-secondary" (click)="modal.dismiss()">
       Cancelar
     </button>
     <button 

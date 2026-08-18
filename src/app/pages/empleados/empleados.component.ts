@@ -1,14 +1,14 @@
 import { Component, OnInit, TemplateRef, inject, signal, computed } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { NgbModal, NgbModalRef, NgbPaginationModule } from '@ng-bootstrap/ng-bootstrap';
 import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { NgbModal, NgbModalModule, NgbModalRef, NgbPaginationModule } from '@ng-bootstrap/ng-bootstrap';
 import { Empleado } from '../../models/empleado.model';
 import { EmpleadosService } from '../../services/empleados.service';
 
 @Component({
   selector: 'app-empleados',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, NgbPaginationModule],
+  imports: [CommonModule, ReactiveFormsModule, NgbModalModule, NgbPaginationModule],
   templateUrl: './empleados.component.html'
 })
 export class EmpleadosComponent implements OnInit {
@@ -16,7 +16,7 @@ export class EmpleadosComponent implements OnInit {
   private readonly modalService = inject(NgbModal);
   private readonly empleadosService = inject(EmpleadosService);
 
-  // Estados reactivos con Signals
+  // Estados Reactivos
   empleados = signal<Empleado[]>([]);
   isLoading = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
@@ -29,7 +29,6 @@ export class EmpleadosComponent implements OnInit {
   // Filtros: 'todos' | 'habilitados' | 'inhabilitados'
   filtroEstado = signal<'todos' | 'habilitados' | 'inhabilitados'>('todos');
 
-  // Lista filtrada reactiva
   empleadosFiltrados = computed(() => {
     const lista = this.empleados();
     const filtro = this.filtroEstado();
@@ -80,14 +79,18 @@ export class EmpleadosComponent implements OnInit {
 
   openModal(content: TemplateRef<unknown>, empleado?: Empleado): void {
     this.isEditMode = !!empleado;
+    this.errorMessage.set(null);
+
     if (empleado) {
       this.currentEmpleadoId = empleado.id;
-      this.empleadoForm.setValue({
+      this.empleadoForm.patchValue({
         nombre: empleado.nombre
       });
     } else {
-      this.empleadoForm.reset();
       this.currentEmpleadoId = null;
+      this.empleadoForm.reset({
+        nombre: ''
+      });
     }
     this.modalRef = this.modalService.open(content, { centered: true });
   }
@@ -104,17 +107,19 @@ export class EmpleadosComponent implements OnInit {
     if (this.isEditMode && this.currentEmpleadoId !== null) {
       this.empleadosService.updateEmpleado(this.currentEmpleadoId, nombre).subscribe({
         next: () => {
+          this.isLoading.set(false);
           this.modalRef?.close();
           this.cargarEmpleados();
         },
         error: (err) => {
-          this.errorMessage.set(err.error?.message || 'Error al actualizar.');
+          this.errorMessage.set(err.error?.message || 'Error al actualizar empleado.');
           this.isLoading.set(false);
         }
       });
     } else {
       this.empleadosService.createEmpleado(nombre).subscribe({
         next: () => {
+          this.isLoading.set(false);
           this.modalRef?.close();
           this.cargarEmpleados(1);
         },
@@ -132,7 +137,7 @@ export class EmpleadosComponent implements OnInit {
       this.empleadosService.deleteEmpleado(id).subscribe({
         next: () => this.cargarEmpleados(),
         error: (err) => {
-          this.errorMessage.set(err.error?.message || 'Error al eliminar.');
+          this.errorMessage.set(err.error?.message || 'Error al eliminar empleado.');
           this.isLoading.set(false);
         }
       });
