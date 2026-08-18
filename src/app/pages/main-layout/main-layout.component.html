@@ -1,39 +1,58 @@
 <nav class="navbar navbar-expand-lg bg-secondary mb-4" data-bs-theme="dark">
   <div class="container-fluid">
-    <a class="navbar-brand d-flex align-items-center gap-2" routerLink="/">
+    <a class="navbar-brand d-flex align-items-center gap-2" routerLink="/caja">
       <i class="bi bi-cash-stack"></i> Caja Control
     </a>
-    <button class="navbar-toggler" type="button" (click)="isMenuCollapsed = !isMenuCollapsed" [attr.aria-expanded]="!isMenuCollapsed" aria-controls="navbarText" aria-label="Toggle navigation">
+    <button 
+      class="navbar-toggler" 
+      type="button" 
+      (click)="isMenuCollapsed = !isMenuCollapsed" 
+      [attr.aria-expanded]="!isMenuCollapsed" 
+      aria-controls="navbarText" 
+      aria-label="Toggle navigation"
+    >
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarText" [ngbCollapse]="isMenuCollapsed">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <!-- Rutas para todos los usuarios autenticados -->
         <li class="nav-item">
           <a class="nav-link d-flex align-items-center gap-2" routerLink="/caja" routerLinkActive="active">
-             Caja
+            <i class="bi bi-wallet2"></i> Caja
           </a>
         </li>
         <li class="nav-item">
           <a class="nav-link d-flex align-items-center gap-2" routerLink="/historial" routerLinkActive="active">
-             Historial
+            <i class="bi bi-clock-history"></i> Historial
           </a>
         </li>
-        <li class="nav-item">
-          <a class="nav-link d-flex align-items-center gap-2" routerLink="/empleados" routerLinkActive="active">
-             Empleados
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link d-flex align-items-center gap-2" routerLink="/usuarios" routerLinkActive="active">
-             Usuarios
-          </a>
-        </li>
+
+        <!-- Rutas exclusivas para ADMIN -->
+        @if (authService.hasRole(['ADMIN'])) {
+          <li class="nav-item">
+            <a class="nav-link d-flex align-items-center gap-2" routerLink="/empleados" routerLinkActive="active">
+              <i class="bi bi-person-badge"></i> Empleados
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link d-flex align-items-center gap-2" routerLink="/usuarios" routerLinkActive="active">
+              <i class="bi bi-people"></i> Usuarios
+            </a>
+          </li>
+        }
       </ul>
-      <ul class="navbar-nav">
+
+      <!-- Usuario y Cierre de Sesión -->
+      <ul class="navbar-nav d-flex align-items-lg-center gap-2">
+        <li class="nav-item text-light small d-none d-lg-block">
+          <i class="bi bi-person-circle me-1"></i>
+          {{ authService.currentUser()?.name }} 
+          <span class="badge bg-dark ms-1">{{ authService.currentUser()?.role }}</span>
+        </li>
         <li class="nav-item">
-          <a class="nav-link d-flex align-items-center gap-2" routerLink="/login" routerLinkActive="active">
+          <button type="button" class="btn btn-link nav-link d-flex align-items-center gap-2 text-danger-emphasis" (click)="onLogout()">
             <i class="bi bi-box-arrow-right"></i> Cerrar sesión
-          </a>
+          </button>
         </li>
       </ul>
     </div>
