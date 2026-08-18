@@ -1,85 +1,199 @@
 <div class="container mt-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="fw-bold mb-0">Gestión de Empleados</h2>
-    <button class="btn btn-primary" (click)="openModal(empleadoModal)">
-      <i class="bi bi-plus-lg"></i> Agregar Empleado
+  <!-- Encabezado y Acciones -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h2 class="fw-bold mb-1">Gestión de Empleados</h2>
+      <p class="text-muted small mb-0">Administración y control del personal</p>
+    </div>
+    <button class="btn btn-primary d-flex align-items-center gap-2" (click)="openModal(empleadoModal)">
+      <i class="bi bi-person-plus-fill"></i> Agregar Empleado
     </button>
   </div>
 
-  <div class="card shadow-sm">
+  <!-- Alerta de Error -->
+  @if (errorMessage()) {
+    <div class="alert alert-danger alert-dismissible fade show small" role="alert">
+      <i class="bi bi-exclamation-octagon me-1"></i> {{ errorMessage() }}
+      <button type="button" class="btn-close" (click)="errorMessage.set(null)" aria-label="Close"></button>
+    </div>
+  }
+
+  <!-- Filtro por Estado (Habilitados / Inhabilitados) -->
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2 d-flex flex-wrap align-items-center justify-content-between gap-2">
+      <span class="small fw-semibold text-muted">Filtrar por estado:</span>
+      <div class="btn-group btn-group-sm" role="group">
+        <button 
+          type="button" 
+          class="btn" 
+          [class.btn-dark]="filtroEstado() === 'todos'" 
+          [class.btn-outline-secondary]="filtroEstado() !== 'todos'"
+          (click)="setFiltro('todos')"
+        >
+          Todos
+        </button>
+        <button 
+          type="button" 
+          class="btn" 
+          [class.btn-success]="filtroEstado() === 'habilitados'" 
+          [class.btn-outline-secondary]="filtroEstado() !== 'habilitados'"
+          (click)="setFiltro('habilitados')"
+        >
+          <i class="bi bi-check-circle me-1"></i> Habilitados
+        </button>
+        <button 
+          type="button" 
+          class="btn" 
+          [class.btn-secondary]="filtroEstado() === 'inhabilitados'" 
+          [class.btn-outline-secondary]="filtroEstado() !== 'inhabilitados'"
+          (click)="setFiltro('inhabilitados')"
+        >
+          <i class="bi bi-slash-circle me-1"></i> Inhabilitados
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla de Datos -->
+  <div class="card shadow-sm border-0">
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0">
         <thead class="table-light">
           <tr>
-            <th scope="col">ID</th>
+            <th scope="col" style="width: 80px;">ID</th>
             <th scope="col">Nombre</th>
-            <th scope="col">Apellido</th>
-            <th scope="col">Teléfono</th>
-            <th scope="col">Acciones</th>
+            <th scope="col" style="width: 140px;">Estado</th>
+            <th scope="col" style="width: 180px;">Fecha Registro</th>
+            <th scope="col" class="text-end" style="width: 120px;">Acciones</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let empleado of empleados">
-            <th scope="row">{{ empleado.id }}</th>
-            <td>{{ empleado.nombre }}</td>
-            <td>{{ empleado.apellido }}</td>
-            <td>{{ empleado.telefono }}</td>
-            <td>
-              <button class="btn btn-sm btn-outline-secondary me-2" (click)="openModal(empleadoModal, empleado)">
-                <i class="bi bi-pencil"></i>
-              </button>
-              <button class="btn btn-sm btn-outline-danger" (click)="onDelete(empleado.id)">
-                <i class="bi bi-trash"></i>
-              </button>
-            </td>
-          </tr>
-          <tr *ngIf="empleados.length === 0">
-            <td colspan="5" class="text-center text-muted py-4">No hay empleados registrados.</td>
-          </tr>
+          @if (isLoading()) {
+            <tr>
+              <td colspan="5" class="text-center py-5 text-muted">
+                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                Cargando empleados...
+              </td>
+            </tr>
+          } @else {
+            @for (empleado of empleadosFiltrados(); track empleado.id) {
+              <tr>
+                <th scope="row" class="text-muted">#{{ empleado.id }}</th>
+                <td class="fw-semibold">{{ empleado.nombre }}</td>
+                <td>
+                  @if (empleado.habilitado) {
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                      <i class="bi bi-dot"></i> Habilitado
+                    </span>
+                  } @else {
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                      <i class="bi bi-dot"></i> Inhabilitado
+                    </span>
+                  }
+                </td>
+                <td class="small text-muted">
+                  {{ empleado.creadoEn | date:'shortDate' }}
+                </td>
+                <td class="text-end">
+                  <button 
+                    class="btn btn-sm btn-outline-secondary me-2" 
+                    title="Editar"
+                    (click)="openModal(empleadoModal, empleado)"
+                  >
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button 
+                    class="btn btn-sm btn-outline-danger" 
+                    title="Eliminar"
+                    (click)="onDelete(empleado.id)"
+                  >
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5" class="text-center text-muted py-5">
+                  <i class="bi bi-people display-6 d-block mb-2 text-secondary"></i>
+                  No se encontraron empleados registrados.
+                </td>
+              </tr>
+            }
+          }
         </tbody>
       </table>
     </div>
+
+    <!-- Paginación Footer -->
+    @if (totalRecords() > pageSize()) {
+      <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3 border-top">
+        <span class="small text-muted">
+          Total: <strong>{{ totalRecords() }}</strong> registros
+        </span>
+        <ngb-pagination
+          [collectionSize]="totalRecords()"
+          [page]="currentPage()"
+          [pageSize]="pageSize()"
+          [maxSize]="5"
+          [rotate]="true"
+          [boundaryLinks]="true"
+          (pageChange)="onPageChange($event)"
+          size="sm"
+          class="mb-0"
+        ></ngb-pagination>
+      </div>
+    }
   </div>
 </div>
 
+<!-- Modal para Crear / Editar -->
 <ng-template #empleadoModal let-modal>
   <div class="modal-header">
-    <h4 class="modal-title">{{ isEditMode ? 'Editar' : 'Agregar' }} Empleado</h4>
+    <h5 class="modal-title fw-bold">
+      <i class="bi" [ngClass]="isEditMode ? 'bi-pencil-square' : 'bi-plus-circle'"></i>
+      {{ isEditMode ? 'Editar' : 'Agregar' }} Empleado
+    </h5>
     <button type="button" class="btn-close" aria-label="Close" (click)="modal.dismiss('Cross click')"></button>
   </div>
   <div class="modal-body">
-    <form [formGroup]="empleadoForm" (ngSubmit)="onSubmit()">
-      <div class="mb-3">
-        <label for="nombre" class="form-label">Nombre</label>
-        <input type="text" id="nombre" class="form-control" formControlName="nombre"
-          [ngClass]="{ 'is-invalid': empleadoForm.get('nombre')?.invalid && empleadoForm.get('nombre')?.touched }">
-        <div *ngIf="empleadoForm.get('nombre')?.invalid && empleadoForm.get('nombre')?.touched" class="invalid-feedback">
-          El nombre es requerido.
+    @if (empleadoForm) {
+      <form [formGroup]="empleadoForm" (ngSubmit)="onSubmit()">
+        <div class="mb-3">
+          <label for="nombre" class="form-label small fw-semibold">Nombre Completo</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-person"></i></span>
+            <input 
+              type="text" 
+              id="nombre" 
+              class="form-control" 
+              formControlName="nombre" 
+              placeholder="Ej. Marisol López"
+              [class.is-invalid]="empleadoForm.get('nombre')?.invalid && empleadoForm.get('nombre')?.touched"
+            >
+          </div>
+          @if (empleadoForm.get('nombre')?.invalid && empleadoForm.get('nombre')?.touched) {
+            <div class="text-danger small mt-1">
+              El nombre es obligatorio y debe tener al menos 2 caracteres.
+            </div>
+          }
         </div>
-      </div>
-      <div class="mb-3">
-        <label for="apellido" class="form-label">Apellido</label>
-        <input type="text" id="apellido" class="form-control" formControlName="apellido"
-          [ngClass]="{ 'is-invalid': empleadoForm.get('apellido')?.invalid && empleadoForm.get('apellido')?.touched }">
-        <div *ngIf="empleadoForm.get('apellido')?.invalid && empleadoForm.get('apellido')?.touched" class="invalid-feedback">
-          El apellido es requerido.
-        </div>
-      </div>
-      <div class="mb-3">
-        <label for="telefono" class="form-label">Número de Teléfono</label>
-        <input type="tel" id="telefono" class="form-control" formControlName="telefono"
-          [ngClass]="{ 'is-invalid': empleadoForm.get('telefono')?.invalid && empleadoForm.get('telefono')?.touched }">
-        <div *ngIf="empleadoForm.get('telefono')?.errors?.['required'] && empleadoForm.get('telefono')?.touched" class="invalid-feedback">
-          El número de teléfono es requerido.
-        </div>
-        <div *ngIf="empleadoForm.get('telefono')?.errors?.['pattern'] && empleadoForm.get('telefono')?.touched" class="invalid-feedback">
-          Ingrese un número de teléfono válido.
-        </div>
-      </div>
-    </form>
+      </form>
+    }
   </div>
   <div class="modal-footer">
-    <button type="button" class="btn btn-secondary" (click)="modal.dismiss('cancel click')">Cancelar</button>
-    <button type="button" class="btn btn-primary" (click)="onSubmit()" [disabled]="empleadoForm.invalid">Guardar</button>
+    <button type="button" class="btn btn-outline-secondary" (click)="modal.dismiss('cancel')">
+      Cancelar
+    </button>
+    <button 
+      type="button" 
+      class="btn btn-primary d-flex align-items-center gap-2" 
+      (click)="onSubmit()" 
+      [disabled]="empleadoForm.invalid || isLoading()"
+    >
+      @if (isLoading()) {
+        <span class="spinner-border spinner-border-sm" role="status"></span>
+      }
+      <span>{{ isEditMode ? 'Actualizar' : 'Guardar' }}</span>
+    </button>
   </div>
 </ng-template>
