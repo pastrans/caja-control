@@ -1,217 +1,264 @@
-<div class="container mt-4">
-  <!-- Formulario de Cobro -->
-  <div class="row justify-content-center mb-4">
-    <div class="col-12 col-lg-8">
-      <div class="card shadow-sm p-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-          <h3 class="fw-bold fs-4 mb-0">Nuevo Cobro</h3>
-          <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary" (click)="abrirModalCashInOut()">Salida/Entrada de efectivo</button>
-            <button type="button" class="btn btn-danger" (click)="abrirModalCerrarCaja()">Cerrar caja</button>
+<div class="container mt-4" data-bs-theme="dark">
+  @if (isLoading()) {
+    <div class="d-flex justify-content-center py-5 text-secondary">
+      <div class="spinner-border" role="status"></div>
+    </div>
+  } @else {
+    <!-- Formulario de Cobro -->
+    <div class="row justify-content-center mb-4">
+      <div class="col-12 col-lg-8">
+        <div class="card shadow-sm p-4 border-secondary bg-dark text-light">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <h3 class="fw-bold fs-4 mb-0"><i class="bi bi-cart-check me-2 text-primary"></i>Nuevo Cobro</h3>
+            <div class="d-flex gap-2 flex-wrap">
+              <button type="button" class="btn btn-outline-info d-flex align-items-center gap-2" (click)="abrirModalCashInOut()">
+                <i class="bi bi-arrow-down-up"></i> Entradas / Salidas
+              </button>
+              <button type="button" class="btn btn-danger d-flex align-items-center gap-2" (click)="abrirModalCerrarCaja()">
+                <i class="bi bi-lock-fill"></i> Cerrar Caja
+              </button>
+            </div>
           </div>
-        </div>
-        
-        <form [formGroup]="cajaForm" (ngSubmit)="guardarCobro()">
           
-          <div class="mb-3">
-            <label class="form-label small fw-semibold">Empleado</label>
-            <div class="d-flex flex-wrap gap-3">
-              <div class="form-check" *ngFor="let emp of empleadas">
-                <input class="form-check-input" type="radio" 
-                       formControlName="empleado" 
-                       [value]="emp.id" 
-                       [id]="'emp-' + emp.id">
-                <label class="form-check-label" [for]="'emp-' + emp.id">
-                  {{ emp.nombre }}
-                </label>
-              </div>
+          @if (errorMessage()) {
+            <div class="alert alert-danger py-2 small" role="alert">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ errorMessage() }}
             </div>
-            <div *ngIf="cajaForm.get('empleado')?.invalid && cajaForm.get('empleado')?.touched" class="text-danger small mt-1">
-              Debe seleccionar una empleada.
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label small fw-semibold">Cantidad a cobrar</label>
-              <div class="input-group">
-                <span class="input-group-text">$</span>
-                <input type="number" 
-                       class="form-control" 
-                       formControlName="amountToCharge" 
-                       step="0.01" 
-                       placeholder="0.00">
-              </div>
-              <div *ngIf="cajaForm.get('amountToCharge')?.invalid && cajaForm.get('amountToCharge')?.touched" class="text-danger small mt-1">
-                Debe ingresar una cantidad válida.
-              </div>
+          }
+          
+          <form [formGroup]="cajaForm" (ngSubmit)="guardarCobro()">
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-secondary">Empleado / Vendedor</label>
+              <select class="form-select bg-dark text-light border-secondary" formControlName="empleado" [class.is-invalid]="cajaForm.get('empleado')?.invalid && cajaForm.get('empleado')?.touched">
+                <option value="" disabled selected>Seleccione un empleado...</option>
+                @for (emp of empleadas; track emp.id) {
+                  <option [value]="emp.id">{{ emp.nombre }}</option>
+                }
+              </select>
+              @if (cajaForm.get('empleado')?.invalid && cajaForm.get('empleado')?.touched) {
+                <div class="invalid-feedback">Debe seleccionar un empleado.</div>
+              }
             </div>
 
-            <div class="col-md-6 mb-3">
-              <label class="form-label small fw-semibold">Efectivo entregado</label>
-              <div class="input-group">
-                <span class="input-group-text">$</span>
-                <input type="number" 
-                       class="form-control" 
-                       formControlName="cashProvided" 
-                       step="0.01" 
-                       placeholder="0.00">
-                <button type="button" 
-                        class="btn btn-outline-secondary" 
-                        (click)="limpiarEfectivo()" title="Limpiar">×</button>
-                <button class="btn btn-outline-secondary px-3" 
-                        type="button" 
-                        (click)="abrirModalBilletes(modalBilletes)" title="Desglose de Efectivo">
-                  💵
-                </button>
+            <div class="row">
+              <!-- Cantidad a cobrar -->
+              <div class="col-md-6 mb-3">
+                <label class="form-label small fw-semibold text-secondary">Cantidad a cobrar</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-dark border-secondary text-secondary">$</span>
+                  <input type="number" 
+                         class="form-control bg-dark text-light border-secondary" 
+                         formControlName="amountToCharge" 
+                         step="0.01" 
+                         placeholder="0.00" 
+                         [class.is-invalid]="cajaForm.get('amountToCharge')?.invalid && cajaForm.get('amountToCharge')?.touched">
+                </div>
+                <!-- Mensajes de error -->
+                @if (cajaForm.get('amountToCharge')?.invalid && cajaForm.get('amountToCharge')?.touched) {
+                  <div class="text-danger small mt-1">
+                    @if (cajaForm.get('amountToCharge')?.errors?.['pattern']) {
+                      Solo se permiten hasta 2 decimales.
+                    } @else {
+                      Debe ingresar una cantidad válida mayor a 0.
+                    }
+                  </div>
+                }
+              </div>
+
+              <!-- Efectivo entregado -->
+              <div class="col-md-6 mb-3">
+                <label class="form-label small fw-semibold text-secondary">Efectivo entregado</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-dark border-secondary text-secondary">$</span>
+                  <input type="number" 
+                         class="form-control bg-dark text-light border-secondary" 
+                         formControlName="cashProvided" 
+                         step="0.01" 
+                         placeholder="0.00" 
+                         [class.is-invalid]="cajaForm.get('cashProvided')?.invalid && cajaForm.get('cashProvided')?.touched">
+                  <button type="button" class="btn btn-outline-secondary border-secondary" (click)="limpiarEfectivo()"><i class="bi bi-x-lg"></i></button>
+                  <button class="btn btn-outline-primary px-3" type="button" (click)="abrirModalBilletes(modalBilletes)"><i class="bi bi-cash-stack"></i></button>
+                </div>
+                <!-- Mensajes de error -->
+                @if (cajaForm.get('cashProvided')?.invalid && cajaForm.get('cashProvided')?.touched) {
+                  <div class="text-danger small mt-1">
+                    @if (cajaForm.get('cashProvided')?.errors?.['pattern']) {
+                      Solo se permiten hasta 2 decimales.
+                    } @else {
+                      Debe ingresar una cantidad válida mayor a 0.
+                    }
+                  </div>
+                }
               </div>
             </div>
-          </div>
 
-          <div class="mb-4">
-            <label class="form-label small fw-semibold">Nota del cobro</label>
-            <textarea class="form-control" 
-                      formControlName="nota" 
-                      rows="2" 
-                      placeholder="Agregue una nota (opcional)..."></textarea>
-          </div>
+            <div class="mb-4">
+              <label class="form-label small fw-semibold text-secondary">Nota del cobro (Opcional)</label>
+              <textarea class="form-control bg-dark text-light border-secondary" formControlName="nota" rows="2" placeholder="Agregue un comentario de la venta..."></textarea>
+            </div>
 
-          <div class="alert alert-info py-2" *ngIf="cashProvided >= amountToCharge && amountToCharge > 0">
-            <strong>Cambio a devolver:</strong> ${{ changeReturned | number:'1.2-2' }}
-          </div>
+            @if (cashProvided >= amountToCharge && amountToCharge > 0) {
+              <div class="alert alert-info py-3 border-info border-opacity-50 bg-info bg-opacity-10 text-info d-flex justify-content-between align-items-center">
+                <span class="fw-semibold">Cambio a devolver:</span>
+                <span class="fs-4 fw-bold">${{ changeReturned | number:'1.2-2' }}</span>
+              </div>
+            }
 
-          <div class="d-flex gap-2 justify-content-end mt-4">
-            <button type="button" class="btn btn-secondary px-4 py-2 fw-semibold" (click)="descartar()">Limpiar</button>
-            <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold">Cobrar y Guardar</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- Tabla de Registros -->
-  <div class="row">
-    <div class="col-12">
-      <div class="card shadow-sm p-4">
-        <h3 class="fw-bold mb-4 fs-4">Historial de Cobros Recientes</h3>
-        <div class="table-responsive">
-          <table class="table table-hover align-middle">
-            <thead class="table-light">
-              <tr>
-                <th scope="col">#</th>
-                <th scope="col">Hora</th>
-                <th scope="col">Empleado</th>
-                <th scope="col">Cobrado</th>
-                <th scope="col">Entregado</th>
-                <th scope="col">Cambio</th>
-                <th scope="col">Nota</th>
-                <th scope="col">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let record of records">
-                <th scope="row">{{ record.id }}</th>
-                <td>{{ record.date | date:'shortTime' }}</td>
-                <td>{{ record.empleadoNombre }}</td>
-                <td class="text-success fw-semibold">${{ record.amountToCharge | number:'1.2-2' }}</td>
-                <td>${{ record.cashProvided | number:'1.2-2' }}</td>
-                <td>${{ record.changeReturned | number:'1.2-2' }}</td>
-                <td class="text-muted small">{{ record.nota || '-' }}</td>
-                <td>
-                  <button class="btn btn-sm btn-outline-info" (click)="verDetalles(record, modalDetalles)" title="Ver detalles de pago">
-                    💵
-                  </button>
-                </td>
-              </tr>
-              <tr *ngIf="records.length === 0">
-                <td colspan="8" class="text-center text-muted py-4">No hay cobros registrados.</td>
-              </tr>
-            </tbody>
-          </table>
+            <div class="d-flex gap-2 justify-content-end mt-4">
+              <button type="button" class="btn btn-outline-secondary px-4 py-2" (click)="descartar()" [disabled]="isSubmitting()">Limpiar</button>
+              <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold d-flex align-items-center gap-2" [disabled]="isSubmitting()">
+                @if (isSubmitting()) {
+                  <span class="spinner-border spinner-border-sm"></span> Guardando...
+                } @else {
+                  <i class="bi bi-check2-circle"></i> Cobrar y Guardar
+                }
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Tabla de Entradas y Salidas de Efectivo -->
-  <div class="row mt-4">
-    <div class="col-12">
-      <div class="card shadow-sm p-4">
-        <h3 class="fw-bold mb-4 fs-4">Historial de Entradas y Salidas de Efectivo</h3>
-        <div class="table-responsive">
-          <table class="table table-hover align-middle">
-            <thead class="table-light">
-              <tr>
-                <th scope="col">#</th>
-                <th scope="col">Hora</th>
-                <th scope="col">Tipo</th>
-                <th scope="col">Monto</th>
-                <th scope="col">Motivo</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let cashRecord of cashRecords">
-                <th scope="row">{{ cashRecord.id }}</th>
-                <td>{{ cashRecord.date | date:'shortTime' }}</td>
-                <td>
-                  <span class="badge" [ngClass]="cashRecord.type === 'Entrada' ? 'bg-success' : 'bg-danger'">
-                    {{ cashRecord.type }}
-                  </span>
-                </td>
-                <td class="fw-semibold">${{ cashRecord.amount | number:'1.2-2' }}</td>
-                <td class="text-muted small">{{ cashRecord.reason }}</td>
-              </tr>
-              <tr *ngIf="cashRecords.length === 0">
-                <td colspan="5" class="text-center text-muted py-4">No hay entradas ni salidas registradas.</td>
-              </tr>
-            </tbody>
-          </table>
+    <!-- Tabla de Entradas y Salidas (Movida Arriba de cobros) -->
+    <div class="row mt-4">
+      <div class="col-12">
+        <div class="card shadow-sm border-secondary bg-dark-subtle">
+          <div class="card-header bg-transparent border-secondary py-3">
+            <h3 class="fw-bold mb-0 fs-5 text-light"><i class="bi bi-arrow-down-up me-2 text-info"></i>Entradas y Salidas Manuales</h3>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle table-dark mb-0">
+              <thead class="table-secondary">
+                <tr>
+                  <th scope="col" style="width: 80px;">ID</th>
+                  <th scope="col">Hora</th>
+                  <th scope="col">Tipo</th>
+                  <th scope="col">Monto</th>
+                  <th scope="col">Motivo</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (cashRecord of cashRecords; track cashRecord.id) {
+                  <tr>
+                    <th scope="row" class="text-secondary">#{{ cashRecord.id }}</th>
+                    <td class="text-secondary">{{ cashRecord.date | date:'shortTime' }}</td>
+                    <td>
+                      @if (cashRecord.type === 'Entrada') {
+                        <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-arrow-down-short"></i> Entrada</span>
+                      } @else {
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-arrow-up-short"></i> Salida</span>
+                      }
+                    </td>
+                    <td class="fw-semibold">{{ cashRecord.amount | currency:'USD':'symbol':'1.2-2' }}</td>
+                    <td class="text-muted small">{{ cashRecord.reason }}</td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="5" class="text-center text-secondary py-4">No hay entradas ni salidas registradas en esta sesión.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+
+    <!-- Tabla de Cobros Recientes -->
+    <div class="row mt-4">
+      <div class="col-12">
+        <div class="card shadow-sm border-secondary bg-dark-subtle">
+          <div class="card-header bg-transparent border-secondary py-3">
+            <h3 class="fw-bold mb-0 fs-5 text-light"><i class="bi bi-receipt-cutoff me-2 text-primary"></i>Cobros Recientes</h3>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle table-dark mb-0 text-nowrap">
+              <thead class="table-secondary">
+                <tr>
+                  <th scope="col" style="width: 80px;">ID</th>
+                  <th scope="col">Hora</th>
+                  <th scope="col">Empleado</th>
+                  <th scope="col">Cobrado</th>
+                  <th scope="col">Entregado</th>
+                  <th scope="col">Cambio</th>
+                  <th scope="col">Nota</th>
+                  <th scope="col" class="text-end">Opciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (record of records; track record.id; let i = $index) {
+                  <tr>
+                    <th scope="row" class="text-secondary">#{{ record.id }}</th>
+                    <td class="text-secondary">{{ record.date | date:'shortTime' }}</td>
+                    <td>{{ record.empleadoNombre }}</td>
+                    <td class="text-primary fw-semibold">{{ record.amountToCharge | currency:'USD':'symbol':'1.2-2' }}</td>
+                    <td>{{ record.cashProvided | currency:'USD':'symbol':'1.2-2' }}</td>
+                    <td>{{ record.changeReturned | currency:'USD':'symbol':'1.2-2' }}</td>
+                    <td class="text-muted small">{{ record.nota || '-' }}</td>
+                    <td class="text-end">
+                      <button class="btn btn-sm btn-outline-info" (click)="verDetalles(record, modalDetalles)" title="Ver detalles de pago">
+                        <i class="bi bi-eye"></i> Detalles
+                      </button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="8" class="text-center text-secondary py-4">No hay cobros registrados en esta sesión.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
 </div>
 
-<!-- Modal para Monedas y Billetes -->
+<!-- Modales -->
 <ng-template #modalBilletes let-modal>
-  <div class="modal-header">
-    <h5 class="modal-title fw-bold">Efectivo Recibido</h5>
-    <button type="button" class="btn-close" aria-label="Close" (click)="modal.dismiss()"></button>
+  <div class="modal-header bg-dark text-light border-secondary">
+    <h5 class="modal-title fw-bold"><i class="bi bi-cash-coin me-2"></i>Efectivo Recibido</h5>
+    <button type="button" class="btn-close btn-close-white" (click)="modal.dismiss()"></button>
   </div>
-  <div class="modal-body p-4" [formGroup]="cajaForm">
+  <div class="modal-body p-4 bg-dark text-light" [formGroup]="cajaForm">
     <app-moneda-billetes [denominationsArray]="denominationsFormArray"></app-moneda-billetes>
-
-    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top border-secondary">
       <button type="button" class="btn btn-primary px-4" (click)="confirmarDesglose(modal)">Confirmar</button>
-      <div class="fs-5 fw-bold">Total Recibido ${{totalModal | number:'1.2-2'}}</div>
+      <div class="fs-5 fw-bold text-success">Total: {{ totalModal | currency:'USD':'symbol':'1.2-2' }}</div>
     </div>
   </div>
 </ng-template>
 
-<!-- Modal para Ver Detalles -->
 <ng-template #modalDetalles let-modal>
-  <div class="modal-header">
-    <h5 class="modal-title fw-bold">Detalles de Pago - Cobro #{{selectedRecord?.id}}</h5>
-    <button type="button" class="btn-close" aria-label="Close" (click)="modal.dismiss()"></button>
+  <div class="modal-header bg-dark text-light border-secondary">
+    <h5 class="modal-title fw-bold">Detalles de Cobro #{{ selectedRecord?.id }}</h5>
+    <button type="button" class="btn-close btn-close-white" (click)="modal.dismiss()"></button>
   </div>
-  <div class="modal-body p-4">
-    <p><strong>Hora:</strong> {{ selectedRecord?.date | date:'shortTime' }}</p>
-    <p><strong>Cobrado:</strong> ${{ selectedRecord?.amountToCharge | number:'1.2-2' }}</p>
-    <p><strong>Entregado:</strong> ${{ selectedRecord?.cashProvided | number:'1.2-2' }}</p>
-    <p><strong>Cambio:</strong> ${{ selectedRecord?.changeReturned | number:'1.2-2' }}</p>
-    <hr>
-    <h6 class="fw-bold">Billetes/Monedas Utilizados:</h6>
-    <ul class="list-group list-group-flush mb-3" *ngIf="selectedRecord?.denominations?.length; else noDenominations">
-      <li class="list-group-item d-flex justify-content-between align-items-center" *ngFor="let den of selectedRecord?.denominations">
-        <span>$ {{ den.valor | number:'1.2-2' }}</span>
-        <span class="badge bg-primary rounded-pill">{{ den.cantidad }}</span>
-      </li>
-    </ul>
-    <ng-template #noDenominations>
-      <p class="text-muted small">No se registró desglose de billetes y monedas.</p>
-    </ng-template>
-  </div>
-  <div class="modal-footer">
-    <button type="button" class="btn btn-secondary" (click)="modal.dismiss()">Cerrar</button>
+  
+  @if (selectedRecord) {
+    <div class="modal-body p-4 bg-dark text-light">
+      <div class="row g-3 mb-4">
+        <div class="col-6"><span class="text-secondary small">Hora:</span> <br> <span class="fw-semibold">{{ selectedRecord.date | date:'shortTime' }}</span></div>
+        <div class="col-6"><span class="text-secondary small">Cobrado:</span> <br> <span class="fw-semibold text-primary">{{ selectedRecord.amountToCharge | currency }}</span></div>
+        <div class="col-6"><span class="text-secondary small">Entregado:</span> <br> <span class="fw-semibold">{{ selectedRecord.cashProvided | currency }}</span></div>
+        <div class="col-6"><span class="text-secondary small">Cambio:</span> <br> <span class="fw-semibold text-warning">{{ selectedRecord.changeReturned | currency }}</span></div>
+      </div>
+      
+      <h6 class="fw-bold border-bottom border-secondary pb-2 mb-3">Denominaciones Recibidas</h6>
+      @if (selectedRecord.denominations && selectedRecord.denominations.length > 0) {
+        <div class="d-flex flex-wrap gap-2">
+          @for (den of selectedRecord.denominations; track den.valor) {
+            @if (den.cantidad > 0) {
+              <span class="badge bg-secondary border border-secondary d-flex align-items-center gap-2 p-2">
+                {{ den.valor | currency:'USD':'symbol':'1.2-2' }}
+                <span class="badge bg-light text-dark rounded-pill">{{ den.cantidad }}</span>
+              </span>
+            }
+          }
+        </div>
+      } @else {
+        <p class="text-muted small fst-italic">No se registró desglose detallado.</p>
+      }
+    </div>
+  }
+  <div class="modal-footer bg-dark border-secondary">
+    <button type="button" class="btn btn-outline-light" (click)="modal.dismiss()">Cerrar</button>
   </div>
 </ng-template>

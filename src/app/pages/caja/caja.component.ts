@@ -1,4 +1,4 @@
-import { Component, inject, TemplateRef, OnInit } from '@angular/core';
+import { Component, inject, TemplateRef, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { NgbModal, NgbModalModule } from '@ng-bootstrap/ng-bootstrap';
@@ -8,68 +8,76 @@ import { CierreCajaComponent } from '../../components/cierre-caja/cierre-caja.co
 import { SalidaEfectivoComponent } from '../../components/salida-efectivo/salida-efectivo.component';
 import { CajaRecord, CashInOutRecord, TransactionRecord } from '../../models/caja.model';
 import { Empleado } from '../../models/empleado.model';
-import { CajaService } from '../../services/caja.service';
+import { CajaService, TransactionPayload } from '../../services/caja.service';
+import { EmpleadosService } from '../../services/empleados.service';
 
 @Component({
   selector: 'app-caja',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, NgbModalModule, MonedaBilletesComponent],
-  templateUrl: './caja.component.html',
-  styles: ``
+  templateUrl: './caja.component.html'
 })
 export class CajaComponent implements OnInit {
-
-  private modalService = inject(NgbModal);
-  private fb = inject(FormBuilder);
-  private router = inject(Router);
+  private readonly modalService = inject(NgbModal);
+  private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
   private readonly cajaService = inject(CajaService);
+  private readonly empleadosService = inject(EmpleadosService);
 
   cajaForm!: FormGroup;
+  
+  // Estados de UI
+  isLoading = signal<boolean>(true);
+  isSubmitting = signal<boolean>(false);
+  errorMessage = signal<string | null>(null);
+
+  // Datos de la sesión
+  activeSession: CajaRecord | null = null;
   records: TransactionRecord[] = [];
   cashRecords: CashInOutRecord[] = [];
-  nextId = 1;
-  nextCashId = 1;
-  activeSession!: CajaRecord;
-
-  empleadas: Empleado[] = [
-    { id: 1, nombre: 'Ana' },
-    { id: 2, nombre: 'María' },
-    { id: 3, nombre: 'Laura' },
-    { id: 4, nombre: 'Sofía' }
-  ];
+  empleadas: Empleado[] = [];
+  selectedRecord: TransactionRecord | null = null;
 
   ngOnInit() {
+    this.cargarEmpleados();
+    this.verificarCajaActiva();
+  }
+
+  cargarEmpleados() {
+    // Cargamos empleados activos (100 como límite temporal para el select)
+    this.empleadosService.getEmpleados(1, 100).subscribe(res => {
+      this.empleadas = res.empleados.filter(e => e.habilitado);
+    });
+  }
+
+  verificarCajaActiva() {
     this.cajaService.getActiveCaja().subscribe({
       next: (caja) => {
         if (!caja) {
-          // Si es null, no hay caja abierta, lo mandamos a abrir
           this.router.navigate(['/abrir-caja']);
+          return;
         }
-        // Si hay caja, guardas los datos y muestras la interfaz de operaciones
+        
+        this.activeSession = caja;
+        // Ordenamos descendente para ver lo más reciente arriba
+        this.records = [...(caja.transactions || [])].sort((a, b) => b.date.getTime() - a.date.getTime());
+        this.cashRecords = [...(caja.cashInOut || [])].sort((a, b) => b.date.getTime() - a.date.getTime());
+        
+        this.initForm();
+        this.isLoading.set(false);
       },
-      error: () => this.router.navigate(['/abrir-caja'])
+      error: () => {
+        this.router.navigate(['/abrir-caja']);
+      }
     });
-    const sessionData = localStorage.getItem('activeCaja');
-    if (!sessionData) {
-      //this.router.navigate(['/abrir-caja']);
-      return;
-    }
-    
-    this.activeSession = JSON.parse(sessionData);
-    this.records = this.activeSession.transactions || [];
-    this.cashRecords = this.activeSession.cashInOut || [];
-    this.nextId = this.records.length > 0 ? Math.max(...this.records.map(r => r.id)) + 1 : 1;
-    this.nextCashId = this.cashRecords.length > 0 ? Math.max(...this.cashRecords.map(r => r.id)) + 1 : 1;
-
-    this.initForm();
   }
 
   initForm() {
     this.cajaForm = this.fb.group({
       empleado: ['', Validators.required],
       nota: [''],
-      amountToCharge: [0.00, [Validators.required, Validators.min(0.01)]],
-      cashProvided: [0.00, [Validators.required, Validators.min(0)]],
+      amountToCharge: [null, [Validators.required, Validators.min(0.01),Validators.pattern(/^\d+(\.\d{1,2})?$/)]],
+      cashProvided: [null, [Validators.required, Validators.min(0.01), Validators.pattern(/^\d+(\.\d{1,2})?$/)]],
       denominations: this.fb.array([
         this.fb.group({ valor: [100.00], cantidad: [0] }),
         this.fb.group({ valor: [50.00], cantidad: [0] }),
@@ -97,52 +105,12 @@ export class CajaComponent implements OnInit {
     }, 0);
   }
 
-  get amountToCharge() {
-    return this.cajaForm.get('amountToCharge')?.value || 0;
-  }
-
-  get cashProvided() {
-    return this.cajaForm.get('cashProvided')?.value || 0;
-  }
-
-  get changeReturned(): number {
-    return Math.max(0, this.cashProvided - this.amountToCharge);
-  }
+  get amountToCharge() { return this.cajaForm?.get('amountToCharge')?.value || 0; }
+  get cashProvided() { return this.cajaForm?.get('cashProvided')?.value || 0; }
+  get changeReturned(): number { return Math.max(0, this.cashProvided - this.amountToCharge); }
 
   abrirModalBilletes(content: TemplateRef<any>) {
     this.modalService.open(content, { centered: true, size: 'lg' });
-  }
-
-  abrirModalCerrarCaja() {
-    const modalRef = this.modalService.open(CierreCajaComponent, { centered: true, size: 'md' });
-    modalRef.result.then((result) => {
-      if (result && result === 'Close Register') {
-        this.router.navigate(['/abrir-caja']);
-      }
-    }).catch(() => {
-      // Modal descartado
-    });
-  }
-
-  abrirModalCashInOut() {
-    const modalRef = this.modalService.open(SalidaEfectivoComponent, { centered: true });
-    modalRef.result.then((result) => {
-      if (result) {
-        this.cashRecords.unshift({
-          id: this.nextCashId++,
-          type: result.type,
-          amount: result.amount,
-          reason: result.reason,
-          date: new Date()
-        });
-        
-        // Save state
-        this.activeSession.cashInOut = this.cashRecords;
-        localStorage.setItem('activeCaja', JSON.stringify(this.activeSession));
-      }
-    }).catch(() => {
-      // Modal descartado
-    });
   }
 
   confirmarDesglose(modal: any) {
@@ -151,11 +119,27 @@ export class CajaComponent implements OnInit {
   }
 
   limpiarEfectivo() {
-    this.cajaForm.patchValue({ cashProvided: (0.00).toFixed(2) });
+    this.cajaForm.patchValue({ cashProvided: null });
     this.denominationsFormArray.controls.forEach(ctrl => ctrl.get('cantidad')?.setValue(0));
   }
 
-  selectedRecord: TransactionRecord | null = null;
+  descartar() {
+    // 1. Limpiar campos individuales sin usar reset() en todo el formulario
+    this.cajaForm.get('empleado')?.setValue('');
+    this.cajaForm.get('nota')?.setValue('');
+    this.cajaForm.get('amountToCharge')?.setValue(null);
+    this.cajaForm.get('cashProvided')?.setValue(null);
+
+    // 2. Reiniciar solo la "cantidad" a 0, preservando el "valor" (100, 50, 0.25...)
+    this.denominationsFormArray.controls.forEach(ctrl => {
+      ctrl.get('cantidad')?.setValue(0);
+    });
+
+    // 3. Quitar las marcas de error de validación
+    this.cajaForm.markAsPristine();
+    this.cajaForm.markAsUntouched();
+    this.errorMessage.set(null);
+  }
 
   verDetalles(record: TransactionRecord, modal: TemplateRef<any>) {
     this.selectedRecord = record;
@@ -164,56 +148,73 @@ export class CajaComponent implements OnInit {
 
   guardarCobro() {
     if (this.cajaForm.invalid) {
-      alert('Por favor, completa todos los campos requeridos y asegúrate de que las cantidades sean válidas.');
+      this.cajaForm.markAllAsTouched();
+      this.errorMessage.set('Completa los campos obligatorios correctamente.');
       return;
     }
 
     if (this.cashProvided < this.amountToCharge) {
-      alert('El efectivo entregado es menor a la cantidad a cobrar.');
+      this.errorMessage.set('El efectivo entregado es menor a la cantidad a cobrar.');
       return;
     }
 
-    const empleadoId = this.cajaForm.get('empleado')?.value;
-    const empleadoObj = this.empleadas.find(e => e.id === Number(empleadoId));
+    this.isSubmitting.set(true);
+    this.errorMessage.set(null);
 
-    const denominations = this.denominationsFormArray.controls
-      .map(ctrl => ({
-        valor: ctrl.get('valor')?.value || 0,
-        cantidad: ctrl.get('cantidad')?.value || 0
-      }))
-      .filter(d => d.cantidad > 0);
-
-    const record: TransactionRecord = {
-      id: this.nextId++,
-      date: new Date(),
-      amountToCharge: this.amountToCharge,
-      cashProvided: this.cashProvided,
-      changeReturned: this.changeReturned,
-      empleadoId: empleadoObj ? empleadoObj.id : 0,
-      empleadoNombre: empleadoObj ? empleadoObj.nombre : 'Desconocido',
-      nota: this.cajaForm.get('nota')?.value || '',
-      denominations: denominations
+    const payload: TransactionPayload = {
+      cashRegisterRecordId: this.activeSession!.id,
+      amountToCharge: Number(this.amountToCharge),
+      cashProvided: Number(this.cashProvided),
+      changeReturned: Number(this.changeReturned),
+      employeeId: Number(this.cajaForm.value.empleado),
+      note: this.cajaForm.value.nota || '',
+      denominations: this.cajaForm.value.denominations
+        .filter((d: any) => d.cantidad > 0)
+        .map((d: any) => ({ value: d.valor, quantity: d.cantidad }))
     };
 
-    this.records.unshift(record); // Añade al inicio de la tabla
-    
-    // Save state
-    this.activeSession.transactions = this.records;
-    localStorage.setItem('activeCaja', JSON.stringify(this.activeSession));
-
-    // Resetear formulario para siguiente cobro
-    this.cajaForm.get('empleado')?.reset('');
-    this.cajaForm.get('nota')?.reset('');
-    this.cajaForm.get('amountToCharge')?.reset(0.00);
-    this.cajaForm.get('cashProvided')?.reset(0.00);
-    this.denominationsFormArray.controls.forEach(ctrl => ctrl.get('cantidad')?.setValue(0));
+    this.cajaService.registerTransaction(payload).subscribe({
+      next: (newRecord) => {
+        this.records.unshift(newRecord);
+        if (this.activeSession) {
+          this.activeSession.transactions = this.records;
+        }
+        this.descartar();
+        this.isSubmitting.set(false);
+      },
+      error: (err) => {
+        this.errorMessage.set(err.error?.message || 'Error al guardar el cobro.');
+        this.isSubmitting.set(false);
+      }
+    });
   }
 
-  descartar() {
-    this.cajaForm.get('empleado')?.reset('');
-    this.cajaForm.get('nota')?.reset('');
-    this.cajaForm.get('amountToCharge')?.reset(0.00);
-    this.cajaForm.get('cashProvided')?.reset(0.00);
-    this.denominationsFormArray.controls.forEach(ctrl => ctrl.get('cantidad')?.setValue(0));
+  abrirModalCashInOut() {
+    const modalRef = this.modalService.open(SalidaEfectivoComponent, { centered: true });
+    
+    // Le pasamos el ID de la caja activa al componente modal
+    modalRef.componentInstance.cashRegisterRecordId = this.activeSession?.id;
+
+    modalRef.result.then((newRecord: CashInOutRecord) => {
+      if (newRecord) {
+        this.cashRecords.unshift(newRecord);
+        if (this.activeSession) {
+          this.activeSession.cashInOut = this.cashRecords;
+        }
+      }
+    }).catch(() => {});
+  }
+
+  abrirModalCerrarCaja() {
+    const modalRef = this.modalService.open(CierreCajaComponent, { centered: true, size: 'md' });
+    
+    // Le pasamos la sesión activa entera para que haga sus cálculos
+    modalRef.componentInstance.activeSession = this.activeSession;
+
+    modalRef.result.then((result) => {
+      if (result === 'Close Register') {
+        this.router.navigate(['/abrir-caja']);
+      }
+    }).catch(() => {});
   }
 }

@@ -1,45 +1,39 @@
-import { Component, OnInit, inject, TemplateRef } from '@angular/core';
+import { Component, OnInit, inject, Input, signal, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { CajaRecord, Closing } from '../../models/caja.model';
+import { CajaRecord } from '../../models/caja.model';
 import { MonedaBilletesComponent } from '../moneda-billetes/moneda-billetes.component';
+import { CajaService, CloseCajaPayload } from '../../services/caja.service';
 
 @Component({
   selector: 'app-cierre-caja',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, MonedaBilletesComponent],
-  templateUrl: './cierre-caja.component.html',
-  styles: ``
+  templateUrl: './cierre-caja.component.html'
 })
 export class CierreCajaComponent implements OnInit {
-  registerForm!: FormGroup;
+  @Input() activeSession!: CajaRecord; // Recibe toda la sesión de CajaComponent
+  
+  public activeModal = inject(NgbActiveModal);
+  private fb = inject(FormBuilder);
   private modalService = inject(NgbModal);
+  private cajaService = inject(CajaService);
 
-  activeSession!: CajaRecord;
+  registerForm!: FormGroup;
+  isSubmitting = signal<boolean>(false);
+  errorMessage = signal<string | null>(null);
+
+  // Valores calculados
   openingAmount: number = 0;
   totalTransactionsCount: number = 0;
   totalTransactionsAmount: number = 0;
   totalInputsOutputs: number = 0;
   expectedCash: number = 0;
 
-  constructor(
-    public activeModal: NgbActiveModal,
-    private fb: FormBuilder
-  ) {}
-
   ngOnInit(): void {
-    const sessionData = localStorage.getItem('activeCaja');
-    if (sessionData) {
-      this.activeSession = JSON.parse(sessionData);
-
-      // ¡CORRECCIÓN! Convertir las cadenas de fecha a objetos Date al cargar la sesión.
-      this.activeSession.opening.date = new Date(this.activeSession.opening.date);
-      (this.activeSession.transactions || []).forEach(t => t.date = new Date(t.date));
-      (this.activeSession.cashInOut || []).forEach(m => m.date = new Date(m.date));
-      
+    if (this.activeSession) {
       this.openingAmount = this.activeSession.opening.cash || 0;
-      
       this.totalTransactionsCount = this.activeSession.transactions?.length || 0;
       this.totalTransactionsAmount = (this.activeSession.transactions || []).reduce((sum, t) => sum + t.amountToCharge, 0);
 
@@ -51,7 +45,7 @@ export class CierreCajaComponent implements OnInit {
     }
 
     this.registerForm = this.fb.group({
-      cashCount: [this.expectedCash.toFixed(2), [Validators.required, Validators.min(0)]],
+      cashCount: [this.expectedCash.toFixed(2), [Validators.required, Validators.min(0.01), Validators.pattern(/^\d+(\.\d{1,2})?$/)] ],
       closingNote: ['', [Validators.maxLength(250)]],
       denominations: this.fb.array([
         this.fb.group({ valor: [100.00], cantidad: [0] }),
@@ -67,36 +61,20 @@ export class CierreCajaComponent implements OnInit {
       ])
     });
 
-    // Validar nota cuando hay diferencia
     this.registerForm.get('cashCount')?.valueChanges.subscribe(() => {
       this.updateNoteValidation();
     });
     this.updateNoteValidation();
   }
 
-  get denominationsFormArray(): FormArray {
-    return this.registerForm.get('denominations') as FormArray;
-  }
-
+  get denominationsFormArray(): FormArray { return this.registerForm.get('denominations') as FormArray; }
   get totalModal(): number {
-    return this.denominationsFormArray.controls.reduce((acc, control) => {
-      const valor = control.get('valor')?.value || 0;
-      const cantidad = control.get('cantidad')?.value || 0;
-      return acc + (valor * cantidad);
-    }, 0);
+    return this.denominationsFormArray.controls.reduce((acc, control) => acc + ((control.value.valor || 0) * (control.value.cantidad || 0)), 0);
   }
-
-  get cashCount(): number {
-    return Number(this.registerForm.get('cashCount')?.value) || 0;
-  }
-
-  get difference(): number {
-    return this.cashCount - this.expectedCash;
-  }
-
-  get hasDifference(): boolean {
-    return Math.abs(this.difference) > 0.01; // Usando 0.01 para evitar errores de precisión de coma flotante
-  }
+  get cashCount(): number { return Number(this.registerForm.get('cashCount')?.value) || 0; }
+  get difference(): number { return this.cashCount - this.expectedCash; }
+  get hasDifference(): boolean { return Math.abs(this.difference) > 0.01; }
+  getAbs(val: number): number { return Math.abs(val); }
 
   updateNoteValidation(): void {
     const noteControl = this.registerForm.get('closingNote');
@@ -124,56 +102,37 @@ export class CierreCajaComponent implements OnInit {
     this.updateNoteValidation();
   }
 
-  getAbs(val: number): number {
-    return Math.abs(val);
-  }
-
   onSubmit(): void {
-    if (this.registerForm.valid) {
-      if (this.activeSession) {
-        const cashProvided = this.cashCount;
-        
-        const denominations = this.denominationsFormArray.controls
-          .map(ctrl => ({
-            valor: ctrl.get('valor')?.value || 0,
-            cantidad: ctrl.get('cantidad')?.value || 0
-          }))
-          .filter(d => d.cantidad > 0);
-        
-        const closing: Closing = {
-          date: new Date(),
-          denominations: denominations,
-          cashProvided: cashProvided,          
-          difference: this.difference,
-          note: this.registerForm.get('closingNote')?.value
-        };
-        
-        this.activeSession.closing = closing;
-        
-        const historialData = localStorage.getItem('historialCaja');
-        let historial: CajaRecord[] = [];
-        if (historialData) {
-          const historialRaw: CajaRecord[] = JSON.parse(historialData);
-          // ¡CORRECCIÓN! Asegurarse de que las fechas del historial existente también sean objetos Date
-          historial = historialRaw.map(registro => {
-            registro.opening.date = new Date(registro.opening.date);
-            if (registro.closing) {
-              registro.closing.date = new Date(registro.closing.date);
-            }
-            registro.transactions = (registro.transactions || []).map(t => ({...t, date: new Date(t.date)}));
-            registro.cashInOut = (registro.cashInOut || []).map(m => ({...m, date: new Date(m.date)}));
-            return registro;
-          });
-        }
-        
-        historial.push(this.activeSession);
-        localStorage.setItem('historialCaja', JSON.stringify(historial));
-        localStorage.removeItem('activeCaja');
-      }
-
-      this.activeModal.close('Close Register');
-    } else {
+    if (this.registerForm.invalid) {
       this.registerForm.markAllAsTouched();
+      return;
     }
+
+    this.isSubmitting.set(true);
+    this.errorMessage.set(null);
+
+    const payload: CloseCajaPayload = {
+      cashRegisterRecordId: this.activeSession.id,
+      totalTransactions: Number(this.totalTransactionsAmount.toFixed(2)),
+      totalCashInOut: Number(this.totalInputsOutputs.toFixed(2)),
+      totalExpected: Number(this.expectedCash.toFixed(2)),
+      cashProvided: Number(this.cashCount.toFixed(2)),
+      difference: Number(this.difference.toFixed(2)),
+      note: this.registerForm.value.closingNote?.trim() || null as any,
+      denominations: this.registerForm.value.denominations
+        .filter((d: any) => d.cantidad > 0)
+        .map((d: any) => ({ value: d.valor, quantity: d.cantidad }))
+    };
+    console.log('📦 Payload a enviar al cierre:', payload);
+
+    this.cajaService.closeCaja(payload).subscribe({
+      next: () => {
+        this.activeModal.close('Close Register');
+      },
+      error: (err) => {
+        this.errorMessage.set(err.error?.message || 'Error al intentar cerrar la caja.');
+        this.isSubmitting.set(false);
+      }
+    });
   }
 }

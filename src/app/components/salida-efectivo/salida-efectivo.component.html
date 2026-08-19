@@ -1,43 +1,57 @@
-<form [formGroup]="cashInOutForm" (ngSubmit)="onSubmit()">
-  <div class="modal-header">
-    <h5 class="modal-title fw-bold">Registrar Entrada / Salida</h5>
-    <button type="button" class="btn-close" aria-label="Close" (click)="activeModal.dismiss()"></button>
+<form [formGroup]="cashInOutForm" (ngSubmit)="onSubmit()" data-bs-theme="dark">
+  <div class="modal-header bg-dark text-light border-secondary">
+    <h5 class="modal-title fw-bold"><i class="bi bi-arrow-down-up me-2"></i>Registrar Entrada / Salida</h5>
+    <button type="button" class="btn-close btn-close-white" aria-label="Close" (click)="activeModal.dismiss()"></button>
   </div>
-  <div class="modal-body p-4">
+  <div class="modal-body p-4 bg-dark text-light">
+    
+    @if (errorMessage()) {
+      <div class="alert alert-danger py-2 small" role="alert">
+        {{ errorMessage() }}
+      </div>
+    }
+
     <div class="mb-3">
-      <label class="form-label small fw-semibold">Tipo de Movimiento</label>
-      <div class="d-flex gap-3 mt-2">
+      <label class="form-label small fw-semibold text-secondary">Tipo de Movimiento</label>
+      <div class="d-flex gap-4 mt-2">
         <div class="form-check">
-          <input class="form-check-input" type="radio" formControlName="type" value="Entrada" id="typeEntrada">
-          <label class="form-check-label" for="typeEntrada">
-            Entrada de Efectivo
+          <input class="form-check-input" type="radio" formControlName="type" value="IN" id="typeEntrada">
+          <label class="form-check-label text-success" for="typeEntrada">
+            <i class="bi bi-arrow-down-short"></i> Entrada de Efectivo
           </label>
         </div>
         <div class="form-check">
-          <input class="form-check-input" type="radio" formControlName="type" value="Salida" id="typeSalida">
-          <label class="form-check-label" for="typeSalida">
-            Salida de Efectivo
+          <input class="form-check-input" type="radio" formControlName="type" value="OUT" id="typeSalida">
+          <label class="form-check-label text-danger" for="typeSalida">
+            <i class="bi bi-arrow-up-short"></i> Salida de Efectivo
           </label>
         </div>
       </div>
     </div>
+    
     <div class="mb-3">
-      <label class="form-label small fw-semibold">Monto</label>
+      <label class="form-label small fw-semibold text-secondary">Monto</label>
       <div class="input-group">
-        <span class="input-group-text">$</span>
-        <input type="number" class="form-control" formControlName="amount" step="0.01" placeholder="0.00">
+        <span class="input-group-text bg-dark border-secondary text-secondary">$</span>
+        <input type="number" class="form-control bg-dark text-light border-secondary" formControlName="amount" step="0.01" placeholder="0.00">
       </div>
-      <div *ngIf="cashInOutForm.get('amount')?.invalid && cashInOutForm.get('amount')?.touched" class="text-danger small mt-1">
-        Debe ingresar un monto válido.
-      </div>
+      @if(cashInOutForm.get('amount')?.invalid && cashInOutForm.get('amount')?.touched){
+        <div class="text-danger small mt-1">Debe ingresar un monto válido.</div>
+      }
     </div>
+    
     <div class="mb-4">
-      <label class="form-label small fw-semibold">Motivo (Opcional)</label>
-      <textarea class="form-control" formControlName="reason" rows="2" placeholder="Especifique el motivo..."></textarea>
+      <label class="form-label small fw-semibold text-secondary">Motivo (Obligatorio)</label>
+      <textarea class="form-control bg-dark text-light border-secondary" formControlName="reason" rows="2" placeholder="Ej. Pago a proveedor, Sencillo ingresado..."></textarea>
+      @if(cashInOutForm.get('reason')?.invalid && cashInOutForm.get('reason')?.touched){
+        <div class="text-danger small mt-1">El motivo es requerido.</div>
+      }
     </div>
-    <div class="d-flex justify-content-end gap-2">
-      <button type="button" class="btn btn-secondary" (click)="activeModal.dismiss()">Cancelar</button>
-      <button type="submit" class="btn btn-primary" [disabled]="cashInOutForm.invalid">Guardar Registro</button>
-    </div>
+  </div>
+  <div class="modal-footer bg-dark border-secondary">
+    <button type="button" class="btn btn-outline-secondary" (click)="activeModal.dismiss()">Cancelar</button>
+    <button type="submit" class="btn btn-primary d-flex align-items-center gap-2" [disabled]="cashInOutForm.invalid || isSubmitting()">
+      @if (isSubmitting()) { <span class="spinner-border spinner-border-sm"></span> } Guardar Registro
+    </button>
   </div>
 </form>
