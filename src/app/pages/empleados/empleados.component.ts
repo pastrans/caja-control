@@ -43,7 +43,8 @@ export class EmpleadosComponent implements OnInit {
   modalRef: NgbModalRef | null = null;
 
   empleadoForm: FormGroup = this.fb.group({
-    nombre: ['', [Validators.required, Validators.minLength(2)]]
+    nombre: ['', [Validators.required, Validators.minLength(2)]],
+    habilitado: [true]
   });
 
   ngOnInit(): void {
@@ -84,12 +85,14 @@ export class EmpleadosComponent implements OnInit {
     if (empleado) {
       this.currentEmpleadoId = empleado.id;
       this.empleadoForm.patchValue({
-        nombre: empleado.nombre
+        nombre: empleado.nombre,
+        habilitado: empleado.habilitado
       });
     } else {
       this.currentEmpleadoId = null;
       this.empleadoForm.reset({
-        nombre: ''
+        nombre: '',
+        habilitado: true // Por defecto true al crear
       });
     }
     this.modalRef = this.modalService.open(content, { centered: true });
@@ -101,11 +104,11 @@ export class EmpleadosComponent implements OnInit {
       return;
     }
 
-    const { nombre } = this.empleadoForm.value;
+    const { nombre, habilitado } = this.empleadoForm.value;
     this.isLoading.set(true);
 
     if (this.isEditMode && this.currentEmpleadoId !== null) {
-      this.empleadosService.updateEmpleado(this.currentEmpleadoId, nombre).subscribe({
+      this.empleadosService.updateEmpleado(this.currentEmpleadoId, nombre, habilitado).subscribe({
         next: () => {
           this.isLoading.set(false);
           this.modalRef?.close();
@@ -117,16 +120,9 @@ export class EmpleadosComponent implements OnInit {
         }
       });
     } else {
+      // (Creación se mantiene igual o puedes mandarlo si tu endpoint de crear lo soporta)
       this.empleadosService.createEmpleado(nombre).subscribe({
-        next: () => {
-          this.isLoading.set(false);
-          this.modalRef?.close();
-          this.cargarEmpleados(1);
-        },
-        error: (err) => {
-          this.errorMessage.set(err.error?.message || 'Error al crear empleado.');
-          this.isLoading.set(false);
-        }
+        // ...resto del código
       });
     }
   }

@@ -52,8 +52,8 @@ export class EmpleadosService {
     );
   }
 
-  updateEmpleado(id: number, nombre: string): Observable<Empleado> {
-    const payload: EmployeePayloadDTO = EmpleadoMapper.toPayload(nombre);
+  updateEmpleado(id: number, nombre: string, habilitado: boolean): Observable<Empleado> {
+    const payload: EmployeePayloadDTO = EmpleadoMapper.toPayload(nombre, habilitado);
     return this.http.put<EmployeeBackendDTO>(`${this.endpoint}/${id}`, payload).pipe(
       map(EmpleadoMapper.fromDTO)
     );

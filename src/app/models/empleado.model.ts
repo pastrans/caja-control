@@ -19,6 +19,7 @@ export interface EmployeeBackendDTO {
 // Payload para crear/actualizar
 export interface EmployeePayloadDTO {
   name: string;
+  available?: boolean;
 }
 
 // Respuesta paginada de la API
@@ -43,9 +44,15 @@ export class EmpleadoMapper {
     };
   }
 
-  static toPayload(nombre: string): EmployeePayloadDTO {
-    return {
+  static toPayload(nombre: string, habilitado?: boolean): EmployeePayloadDTO {
+    const payload: EmployeePayloadDTO = {
       name: nombre.trim()
     };
+    
+    if (habilitado !== undefined) {
+      payload.available = habilitado;
+    }
+    
+    return payload;
   }
 }
