@@ -32,6 +32,13 @@ export interface OpeningDTO {
   denominations: DenominationDTO[];
 }
 
+// Payload para abrir la caja
+export interface OpenCajaPayloadDTO {
+  cash: number;
+  note: string;
+  denominations: { value: number; quantity: number }[];
+}
+
 export interface ClosingDTO {
   id: number;
   cashProvided: number;

@@ -11,7 +11,7 @@ import { AuthService } from '../../services/auth.service';
 })
 export class MainLayoutComponent {
   readonly authService = inject(AuthService);
-  private readonly router = inject(Router);
+  readonly router = inject(Router);
   
   isMenuCollapsed = true;
 

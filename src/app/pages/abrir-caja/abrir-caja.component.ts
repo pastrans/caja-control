@@ -1,10 +1,10 @@
-import { Component, inject, TemplateRef, OnInit } from '@angular/core';
+import { Component, inject, TemplateRef, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray } from '@angular/forms';
 import { NgbModal, NgbModalModule } from '@ng-bootstrap/ng-bootstrap';
 import { Router } from '@angular/router';
 import { MonedaBilletesComponent } from '../../components/moneda-billetes/moneda-billetes.component';
-import { CajaRecord } from '../../models/caja.model';
+import { CajaService, OpenCajaPayload } from '../../services/caja.service';
 
 @Component({
   selector: 'app-abrir-caja',
@@ -14,20 +14,36 @@ import { CajaRecord } from '../../models/caja.model';
   styleUrl: './abrir-caja.component.css'
 })
 export class AbrirCajaComponent implements OnInit {
-
-  private modalService = inject(NgbModal);
-  private fb = inject(FormBuilder);
-  private router = inject(Router);
+  private readonly modalService = inject(NgbModal);
+  private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
+  private readonly cajaService = inject(CajaService);
 
   cajaForm!: FormGroup;
+  
+  isLoading = signal<boolean>(true);
+  isSubmitting = signal<boolean>(false);
+  errorMessage = signal<string | null>(null);
 
   ngOnInit() {
-    // If active session exists, go directly to caja
-    if (localStorage.getItem('activeCaja')) {
-      this.router.navigate(['/caja']);
-      return;
-    }
+    // Verificar si ya existe una caja activa
+    this.cajaService.getActiveCaja().subscribe({
+      next: (cajaActiva) => {
+        if (cajaActiva) {
+          this.router.navigate(['/caja']);
+        } else {
+          this.initForm();
+          this.isLoading.set(false);
+        }
+      },
+      error: () => {
+        this.initForm();
+        this.isLoading.set(false);
+      }
+    });
+  }
 
+  initForm(): void {
     this.cajaForm = this.fb.group({
       openingCash: [0.00],
       openingNote: [''],
@@ -50,7 +66,6 @@ export class AbrirCajaComponent implements OnInit {
     return this.cajaForm.get('denominations') as FormArray;
   }
 
-  // Calcula el total acumulado en tiempo real dentro del modal
   get totalModal(): number {
     return this.denominationsFormArray.controls.reduce((acc, control) => {
       const valor = control.get('valor')?.value || 0;
@@ -74,28 +89,30 @@ export class AbrirCajaComponent implements OnInit {
   }
 
   guardarApertura() {
-    const denominations = this.denominationsFormArray.controls
-      .map(ctrl => ({
-        valor: ctrl.get('valor')?.value || 0,
-        cantidad: ctrl.get('cantidad')?.value || 0
-      }))
-      .filter(d => d.cantidad > 0);
+    this.isSubmitting.set(true);
+    this.errorMessage.set(null);
 
-    const session: CajaRecord = {
-      id: Date.now(),
-      status: 'OPEN',
-      opening: {
-        date: new Date(),
-        denominations: denominations,
-        cash: Number(this.cajaForm.get('openingCash')?.value) || 0,
-        note: this.cajaForm.get('openingNote')?.value || ''
-      },
-      transactions: [],
-      cashInOut: []
+    const formValues = this.cajaForm.value;
+    
+    // Mapeo al payload que espera la API
+    const payload: OpenCajaPayload = {
+      cash: Number(formValues.openingCash) || 0,
+      note: formValues.openingNote || '',
+      denominations: formValues.denominations
+        .map((d: any) => ({ value: d.valor, quantity: d.cantidad }))
+        .filter((d: any) => d.quantity > 0)
     };
 
-    localStorage.setItem('activeCaja', JSON.stringify(session));
-    this.router.navigate(['/caja']);
+    this.cajaService.openCaja(payload).subscribe({
+      next: () => {
+        this.isSubmitting.set(false);
+        this.router.navigate(['/caja']);
+      },
+      error: (err) => {
+        this.errorMessage.set(err.error?.message || 'Ocurrió un error al intentar abrir la caja.');
+        this.isSubmitting.set(false);
+      }
+    });
   }
 
   descartar() {

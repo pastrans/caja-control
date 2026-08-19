@@ -1,55 +1,89 @@
-<div class="container mt-4" style="max-width: 600px;">
-  <div class="card shadow-sm p-4">
-    <h3 class="fw-bold mb-4 fs-4">Control de Apertura</h3>
-
-    <form [formGroup]="cajaForm" (ngSubmit)="guardarApertura()">      
-      <div class="mb-4">
-        <label class="form-label small fw-semibold">Apertura en efectivo</label>
-        <div class="input-group" style="max-width: 320px;">
-          <input type="number" 
-                 class="form-control" 
-                 formControlName="openingCash" 
-                 step="0.01" 
-                 placeholder="0.00">
-          <button type="button" 
-                  class="btn btn-outline-secondary" 
-                  (click)="limpiarEfectivo()" title="Limpiar">×</button>
-          <button class="btn btn-outline-secondary px-3" 
-                  type="button" 
-                  (click)="abrirModalBilletes(modalBilletes)" title="Desglose">
-            💵
-          </button>
+<div class="container mt-4" style="max-width: 600px;" data-bs-theme="dark">
+  @if (isLoading()) {
+    <div class="d-flex flex-column justify-content-center align-items-center py-5 text-secondary">
+      <div class="spinner-border mb-3" role="status"></div>
+      <h5>Verificando estado de la caja...</h5>
+    </div>
+  } @else {
+    <div class="card shadow-sm p-4 border-secondary bg-dark text-light">
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <i class="bi bi-box-arrow-in-right display-6 text-primary"></i>
+        <div>
+          <h3 class="fw-bold mb-0 fs-4">Apertura de Caja</h3>
+          <p class="small text-secondary mb-0">Ingresa el fondo inicial para operar</p>
         </div>
       </div>
 
-      <div class="mb-4">
-        <label class="form-label small fw-semibold">Apertura de billetes/monedas</label>
-        <textarea class="form-control" 
-                  formControlName="openingNote" 
-                  rows="3" 
-                  placeholder="Agrega una nota de apertura..."></textarea>
-      </div>
+      @if (errorMessage()) {
+        <div class="alert alert-danger alert-dismissible fade show small" role="alert">
+          <i class="bi bi-exclamation-octagon me-1"></i> {{ errorMessage() }}
+          <button type="button" class="btn-close" (click)="errorMessage.set(null)" aria-label="Close"></button>
+        </div>
+      }
 
-      <div class="d-flex gap-2">
-        <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold">Abrir Caja</button>
-        <button type="button" class="btn btn-secondary px-4 py-2 fw-semibold" (click)="descartar()">Descartar</button>
-      </div>
+      @if (cajaForm) {
+        <form [formGroup]="cajaForm" (ngSubmit)="guardarApertura()">      
+          <div class="mb-4">
+            <label class="form-label small fw-semibold text-secondary">Efectivo Inicial Registrado</label>
+            <div class="input-group" style="max-width: 320px;">
+              <span class="input-group-text bg-dark border-secondary text-secondary">$</span>
+              <input type="number" 
+                     class="form-control bg-dark text-light border-secondary" 
+                     formControlName="openingCash" 
+                     step="0.01" 
+                     placeholder="0.00">
+              <button type="button" 
+                      class="btn btn-outline-secondary border-secondary" 
+                      (click)="limpiarEfectivo()" title="Limpiar">
+                <i class="bi bi-x-lg"></i>
+              </button>
+              <button class="btn btn-outline-primary px-3" 
+                      type="button" 
+                      (click)="abrirModalBilletes(modalBilletes)" title="Desglose de Monedas y Billetes">
+                <i class="bi bi-cash-stack"></i>
+              </button>
+            </div>
+          </div>
 
-    </form>
-  </div>
+          <div class="mb-4">
+            <label class="form-label small fw-semibold text-secondary">Nota de Apertura (Opcional)</label>
+            <textarea class="form-control bg-dark text-light border-secondary" 
+                      formControlName="openingNote" 
+                      rows="3" 
+                      placeholder="Ej. Fondo de cambio entregado por gerencia..."></textarea>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold d-flex align-items-center gap-2" [disabled]="isSubmitting()">
+              @if (isSubmitting()) {
+                <span class="spinner-border spinner-border-sm"></span> Abriendo...
+              } @else {
+                <i class="bi bi-check-lg"></i> Abrir Caja
+              }
+            </button>
+            <button type="button" class="btn btn-outline-secondary px-4 py-2 fw-semibold" (click)="descartar()" [disabled]="isSubmitting()">
+              Limpiar
+            </button>
+          </div>
+        </form>
+      }
+    </div>
+  }
 </div>
 
+<!-- Modal Desglose Billetes -->
 <ng-template #modalBilletes let-modal>
-  <div class="modal-header">
-    <h5 class="modal-title fw-bold">Monedas/billetes</h5>
-    <button type="button" class="btn-close" aria-label="Close" (click)="modal.dismiss()"></button>
+  <div class="modal-header bg-dark text-light border-secondary">
+    <h5 class="modal-title fw-bold"><i class="bi bi-cash-coin me-2"></i>Desglose de Efectivo</h5>
+    <button type="button" class="btn-close btn-close-white" aria-label="Close" (click)="modal.dismiss()"></button>
   </div>
-  <div class="modal-body p-4" [formGroup]="cajaForm">
+  <div class="modal-body p-4 bg-dark text-light" [formGroup]="cajaForm">
+    <!-- Asumo que tu componente app-moneda-billetes ya soporta o se adapta bien al modo oscuro -->
     <app-moneda-billetes [denominationsArray]="denominationsFormArray"></app-moneda-billetes>
 
-    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top border-secondary">
       <button type="button" class="btn btn-primary px-4" (click)="confirmarDesglose(modal)">Confirmar</button>
-      <div class="fs-5 fw-bold">Total ${{totalModal | number:'1.2-2'}}</div>
+      <div class="fs-5 fw-bold text-success">Total: {{totalModal | currency:'USD':'symbol':'1.2-2'}}</div>
     </div>
   </div>
 </ng-template>

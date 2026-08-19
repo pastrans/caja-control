@@ -6,8 +6,9 @@ import { Router } from '@angular/router';
 import { MonedaBilletesComponent } from '../../components/moneda-billetes/moneda-billetes.component';
 import { CierreCajaComponent } from '../../components/cierre-caja/cierre-caja.component';
 import { SalidaEfectivoComponent } from '../../components/salida-efectivo/salida-efectivo.component';
-import { CajaRecord, CashInOutRecord, DenominationRecord, TransactionRecord } from '../../models/caja.model';
+import { CajaRecord, CashInOutRecord, TransactionRecord } from '../../models/caja.model';
 import { Empleado } from '../../models/empleado.model';
+import { CajaService } from '../../services/caja.service';
 
 @Component({
   selector: 'app-caja',
@@ -21,6 +22,7 @@ export class CajaComponent implements OnInit {
   private modalService = inject(NgbModal);
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private readonly cajaService = inject(CajaService);
 
   cajaForm!: FormGroup;
   records: TransactionRecord[] = [];
@@ -37,9 +39,19 @@ export class CajaComponent implements OnInit {
   ];
 
   ngOnInit() {
+    this.cajaService.getActiveCaja().subscribe({
+      next: (caja) => {
+        if (!caja) {
+          // Si es null, no hay caja abierta, lo mandamos a abrir
+          this.router.navigate(['/abrir-caja']);
+        }
+        // Si hay caja, guardas los datos y muestras la interfaz de operaciones
+      },
+      error: () => this.router.navigate(['/abrir-caja'])
+    });
     const sessionData = localStorage.getItem('activeCaja');
     if (!sessionData) {
-      this.router.navigate(['/abrir-caja']);
+      //this.router.navigate(['/abrir-caja']);
       return;
     }
     

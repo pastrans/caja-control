@@ -17,7 +17,9 @@
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <!-- Rutas para todos los usuarios autenticados -->
         <li class="nav-item">
-          <a class="nav-link d-flex align-items-center gap-2" routerLink="/caja" routerLinkActive="active">
+          <a class="nav-link d-flex align-items-center gap-2" 
+            routerLink="/caja" 
+            [class.active]="router.url === '/caja' || router.url === '/abrir-caja'">
             <i class="bi bi-wallet2"></i> Caja
           </a>
         </li>
