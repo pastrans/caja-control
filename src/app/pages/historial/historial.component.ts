@@ -59,6 +59,10 @@ export class HistorialComponent implements OnInit {
     if (!movimientos || movimientos.length === 0) return 0;
     return movimientos.filter(m => m.type === tipo).reduce((sum, m) => sum + m.amount, 0);
   }
+  calcularTotalTransacciones(transacciones: TransactionRecord[] | undefined): number {
+    if (!transacciones || transacciones.length === 0) return 0;
+    return transacciones.reduce((sum, t) => sum + t.amountToCharge, 0);
+  }
 
   abrirModal(modal: TemplateRef<unknown>, registro: CajaRecord): void {
     this.registroSeleccionado.set(registro);

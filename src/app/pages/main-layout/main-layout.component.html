@@ -49,7 +49,7 @@
         <li class="nav-item text-light small d-none d-lg-block">
           <i class="bi bi-person-circle me-1"></i>
           {{ authService.currentUser()?.name }} 
-          <span class="badge bg-dark ms-1">{{ authService.currentUser()?.role }}</span>
+          <span class="badge bg-dark ms-1">{{ getRoleLabel(authService.currentUser()?.role) }}</span>
         </li>
         <li class="nav-item">
           <button type="button" class="btn btn-link nav-link d-flex align-items-center gap-2 text-danger-emphasis" (click)="onLogout()">

@@ -14,7 +14,11 @@ export class MainLayoutComponent {
   readonly router = inject(Router);
   
   isMenuCollapsed = true;
-
+  
+  getRoleLabel(role?: string): string {
+    if (!role) return '';
+    return role === 'ADMIN' ? 'Admin' : 'Cajero';
+  }
   onLogout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
