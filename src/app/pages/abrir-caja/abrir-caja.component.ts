@@ -1,10 +1,11 @@
 import { Component, inject, TemplateRef, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { NgbModal, NgbModalModule } from '@ng-bootstrap/ng-bootstrap';
 import { Router } from '@angular/router';
 import { MonedaBilletesComponent } from '../../components/moneda-billetes/moneda-billetes.component';
 import { CajaService, OpenCajaPayload } from '../../services/caja.service';
+import { AppValidators } from '../../utils/app-validators';
 
 @Component({
   selector: 'app-abrir-caja',
@@ -45,7 +46,7 @@ export class AbrirCajaComponent implements OnInit {
 
   initForm(): void {
     this.cajaForm = this.fb.group({
-      openingCash: [0.00],
+      openingCash: [0.00, [ Validators.required, Validators.min( 0.01 ),Validators.pattern( AppValidators.amountFormat ) ] ],
       openingNote: [''],
       denominations: this.fb.array([
         this.fb.group({ valor: [100.00], cantidad: [0] }),

@@ -193,20 +193,24 @@
 
         <!-- Contraseña -->
         <div class="mb-3">
-          <label for="contrasena" class="form-label small fw-semibold">
+          <label for="contrasena" class="form-label small fw-semibold text-secondary">
             Contraseña {{ isEditMode ? '(Opcional)' : '' }}
           </label>
           <input 
             type="password" 
             id="contrasena" 
-            class="form-control" 
+            class="form-control bg-dark text-light border-secondary" 
             formControlName="contrasena"
-            [placeholder]="isEditMode ? 'Dejar en blanco para no modificar' : 'Mínimo 6 caracteres'"
+            [placeholder]="isEditMode ? 'Dejar en blanco para no modificar' : 'Mínimo 8 caracteres, 1 mayúscula, 1 número y 1 especial'"
             [class.is-invalid]="usuarioForm.get('contrasena')?.invalid && usuarioForm.get('contrasena')?.touched"
           >
           @if (usuarioForm.get('contrasena')?.invalid && usuarioForm.get('contrasena')?.touched) {
             <div class="invalid-feedback">
-              La contraseña debe tener al menos 6 caracteres.
+              @if (usuarioForm.get('contrasena')?.errors?.['required']) {
+                La contraseña es requerida.
+              } @else if (usuarioForm.get('contrasena')?.errors?.['strongPassword']) {
+                Debe tener min. 8 caracteres, incluir una mayúscula, un número y un carácter especial.
+              }
             </div>
           }
         </div>

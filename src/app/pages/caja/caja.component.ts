@@ -10,6 +10,7 @@ import { CajaRecord, CashInOutRecord, TransactionRecord } from '../../models/caj
 import { Empleado } from '../../models/empleado.model';
 import { CajaService, TransactionPayload } from '../../services/caja.service';
 import { EmpleadosService } from '../../services/empleados.service';
+import { AppValidators } from '../../utils/app-validators';
 
 @Component({
   selector: 'app-caja',
@@ -76,8 +77,8 @@ export class CajaComponent implements OnInit {
     this.cajaForm = this.fb.group({
       empleado: ['', Validators.required],
       nota: [''],
-      amountToCharge: [null, [Validators.required, Validators.min(0.01),Validators.pattern(/^\d+(\.\d{1,2})?$/)]],
-      cashProvided: [null, [Validators.required, Validators.min(0.01), Validators.pattern(/^\d+(\.\d{1,2})?$/)]],
+      amountToCharge: [null, [ Validators.required, Validators.min( 0.01 ),Validators.pattern( AppValidators.amountFormat ) ] ],
+      cashProvided: [null, [ Validators.required, Validators.min( 0.01 ), Validators.pattern( AppValidators.amountFormat ) ] ],
       denominations: this.fb.array([
         this.fb.group({ valor: [100.00], cantidad: [0] }),
         this.fb.group({ valor: [50.00], cantidad: [0] }),

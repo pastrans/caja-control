@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { AppValidators } from '../../utils/app-validators';
 
 @Component({
   selector: 'app-reset-password',
@@ -30,7 +31,7 @@ export class ResetPasswordComponent implements OnInit {
   errorMessage = signal<string | null>(null);
 
   resetForm: FormGroup = this.fb.group({
-    password: ['', [Validators.required, Validators.minLength(6)]],
+    password: ['', [Validators.required, AppValidators.strongPassword]],
     confirmPassword: ['', [Validators.required]]
   }, { validators: this.passwordMatchValidator });
 

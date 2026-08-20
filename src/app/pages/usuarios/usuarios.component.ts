@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { NgbModal, NgbModalModule, NgbModalRef, NgbPaginationModule } from '@ng-bootstrap/ng-bootstrap';
 import { Usuario, RolUsuario } from '../../models/usuario.model';
 import { UsuariosService } from '../../services/usuarios.service';
+import { AppValidators } from '../../utils/app-validators';
 
 @Component({
   selector: 'app-usuarios',
@@ -48,7 +49,7 @@ export class UsuariosComponent implements OnInit {
     id: [null],
     nombre: ['', [Validators.required, Validators.minLength(3)]],
     correo: ['', [Validators.required, Validators.email]],
-    contrasena: ['', [Validators.required, Validators.minLength(6)]],
+    contrasena: ['', [Validators.required, AppValidators.strongPassword]],
     role: ['Cajero' as RolUsuario, Validators.required],
     habilitado: [true]
   });
@@ -98,7 +99,7 @@ export class UsuariosComponent implements OnInit {
         habilitado: usuario.habilitado,
         contrasena: ''
       });
-      this.usuarioForm.get('contrasena')?.clearValidators();
+      this.usuarioForm.get('contrasena')?.addValidators([AppValidators.strongPassword]);
       this.usuarioForm.get('contrasena')?.updateValueAndValidity();
     } else {
       this.usuarioSeleccionado = null;
@@ -110,7 +111,7 @@ export class UsuariosComponent implements OnInit {
         role: 'Cajero',
         habilitado: true
       });
-      this.usuarioForm.get('contrasena')?.setValidators([Validators.required, Validators.minLength(6)]);
+      this.usuarioForm.get('contrasena')?.setValidators([Validators.required, AppValidators.strongPassword]);
       this.usuarioForm.get('contrasena')?.updateValueAndValidity();
     }
 

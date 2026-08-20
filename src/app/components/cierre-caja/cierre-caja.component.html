@@ -62,6 +62,15 @@
         <button class="btn btn-outline-secondary border-secondary px-3" type="button" (click)="limpiarEfectivo()"><i class="bi bi-x-lg"></i></button>
         <button class="btn btn-outline-primary px-3" type="button" (click)="abrirModalBilletes(modalBilletes)"><i class="bi bi-cash-stack"></i></button>
       </div>
+      @if (registerForm.get('cashCount')?.invalid && registerForm.get('cashCount')?.touched) {
+          <div class="text-danger small mt-1">
+            @if (registerForm.get('cashCount')?.errors?.['pattern']) {
+              Solo se permiten hasta 2 decimales.
+            } @else {
+              Debe ingresar una cantidad válida mayor a 0.
+            }
+          </div>
+        }
     </div>
 
     <div class="mb-3">

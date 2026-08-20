@@ -42,6 +42,15 @@
                       (click)="abrirModalBilletes(modalBilletes)" title="Desglose de Monedas y Billetes">
                 <i class="bi bi-cash-stack"></i>
               </button>
+              @if (cajaForm.get('openingCash')?.invalid && cajaForm.get('openingCash')?.touched) {
+                  <div class="text-danger small mt-1">
+                    @if (cajaForm.get('openingCash')?.errors?.['pattern']) {
+                      Solo se permiten hasta 2 decimales.
+                    } @else {
+                      Debe ingresar una cantidad válida mayor a 0.
+                    }
+                  </div>
+                }
             </div>
           </div>
 

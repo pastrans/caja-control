@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 import { CajaService, CashInOutPayload } from '../../services/caja.service';
+import { AppValidators } from '../../utils/app-validators';
 
 @Component({
   selector: 'app-salida-efectivo',
@@ -23,12 +24,8 @@ export class SalidaEfectivoComponent implements OnInit {
 
   ngOnInit(): void {
     this.cashInOutForm = this.fb.group({
-      type: ['IN', Validators.required],
-      amount: [null, [
-        Validators.required, 
-        Validators.min(0.01),
-        Validators.pattern(/^\d+(\.\d{1,2})?$/) // 👈 Solo permite hasta 2 decimales
-      ]],
+      type: ['', Validators.required],
+      amount: [null,[ Validators.required, Validators.min( 0.01 ),Validators.pattern( AppValidators.amountFormat ) ] ],
       reason: ['', Validators.required] // Hecho obligatorio por consistencia
     });
   }

@@ -5,6 +5,7 @@ import { NgbActiveModal, NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { CajaRecord } from '../../models/caja.model';
 import { MonedaBilletesComponent } from '../moneda-billetes/moneda-billetes.component';
 import { CajaService, CloseCajaPayload } from '../../services/caja.service';
+import { AppValidators } from '../../utils/app-validators';
 
 @Component({
   selector: 'app-cierre-caja',
@@ -45,7 +46,7 @@ export class CierreCajaComponent implements OnInit {
     }
 
     this.registerForm = this.fb.group({
-      cashCount: [this.expectedCash.toFixed(2), [Validators.required, Validators.min(0.01), Validators.pattern(/^\d+(\.\d{1,2})?$/)] ],
+      cashCount: [this.expectedCash.toFixed(2), [ Validators.required, Validators.min( 0.01 ),Validators.pattern( AppValidators.amountFormat ) ]  ],
       closingNote: ['', [Validators.maxLength(250)]],
       denominations: this.fb.array([
         this.fb.group({ valor: [100.00], cantidad: [0] }),
