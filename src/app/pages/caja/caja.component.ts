@@ -82,6 +82,9 @@ export class CajaComponent implements OnInit {
       cashProvided: [null, [ Validators.required, Validators.min( 0.01 ), Validators.pattern( AppValidators.amountFormat ) ] ],
       denominations: DenominationsUtils.build(this.fb)
     });
+    this.cajaForm.get('cashProvided')?.valueChanges.subscribe(() => {
+      DenominationsUtils.clear(this.denominationsFormArray);
+    });
   }
 
   get denominationsFormArray(): FormArray {
@@ -101,12 +104,20 @@ export class CajaComponent implements OnInit {
   get changeReturned(): number { return Math.max(0, this.cashProvided - this.amountToCharge); }
 
   abrirModalBilletes(content: TemplateRef<any>) {
-    this.modalService.open(content, { centered: true, size: 'lg' });
+    this.modalService.open(content, { centered: true, size: 'lg' }).result.then(
+        (result) => {},
+        (reason) => {
+          DenominationsUtils.clear(this.denominationsFormArray);
+        }
+      );
   }
 
   confirmarDesglose(modal: any) {
-    this.cajaForm.patchValue({ cashProvided: this.totalModal.toFixed(2) });
-    modal.close();
+    this.cajaForm.patchValue(
+      { cashProvided: this.totalModal.toFixed(2) },
+      { emitEvent: false }
+    );
+    modal.close('Confirmed');
   }
 
   limpiarEfectivo() {

@@ -51,6 +51,9 @@ export class AbrirCajaComponent implements OnInit {
       openingNote: [''],
       denominations: DenominationsUtils.build(this.fb) 
     });
+    this.cajaForm.get('openingCash')?.valueChanges.subscribe(() => {
+      DenominationsUtils.clear(this.denominationsFormArray);
+    });
   }
 
   get denominationsFormArray(): FormArray {
@@ -66,12 +69,21 @@ export class AbrirCajaComponent implements OnInit {
   }
 
   abrirModalBilletes(content: TemplateRef<any>) {
-    this.modalService.open(content, { centered: true, size: 'lg' });
+    this.modalService.open(content, { centered: true, size: 'lg' }).result.then(
+        (result) => { /* Modal confirmado */ },
+        (reason) => { 
+          // 2. Si el modal se cierra sin confirmar (clic afuera, X, Esc)
+          DenominationsUtils.clear(this.denominationsFormArray);
+        }
+      );
   }
 
   confirmarDesglose(modal: any) {
-    this.cajaForm.patchValue({ openingCash: this.totalModal.toFixed(2) });
-    modal.close();
+    this.cajaForm.patchValue(
+      { openingCash: this.totalModal.toFixed(2) },
+      { emitEvent: false } 
+    );
+    modal.close('Confirmed');
   }
 
   limpiarEfectivo() {

@@ -51,10 +51,11 @@ export class CierreCajaComponent implements OnInit {
       closingNote: ['', [Validators.maxLength(250)]],
       denominations: DenominationsUtils.build(this.fb)
     });
-
     this.registerForm.get('cashCount')?.valueChanges.subscribe(() => {
-      this.updateNoteValidation();
+      DenominationsUtils.clear(this.denominationsFormArray); // Limpiamos denominaciones
+      this.updateNoteValidation(); // Se evalúa si hace falta la nota
     });
+
     this.updateNoteValidation();
   }
 
@@ -78,13 +79,22 @@ export class CierreCajaComponent implements OnInit {
   }
 
   abrirModalBilletes(content: TemplateRef<any>) {
-    this.modalService.open(content, { centered: true, size: 'lg' });
+    this.modalService.open(content, { centered: true, size: 'lg' }).result.then(
+        () => {},
+        () => {
+          // Limpiar si descarta el modal
+          DenominationsUtils.clear(this.denominationsFormArray);
+        }
+      );
   }
 
   confirmarDesglose(modal: any) {
-    this.registerForm.patchValue({ cashCount: this.totalModal.toFixed(2) });
-    this.updateNoteValidation();
-    modal.close();
+    this.registerForm.patchValue(
+      { cashCount: this.totalModal.toFixed(2) },
+      { emitEvent: false }
+    );
+    this.updateNoteValidation(); // Disparamos la validación de la nota manualmente
+    modal.close('Confirmed');
   }
 
   limpiarEfectivo() {
