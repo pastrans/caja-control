@@ -11,6 +11,7 @@ import { Empleado } from '../../models/empleado.model';
 import { CajaService, TransactionPayload } from '../../services/caja.service';
 import { EmpleadosService } from '../../services/empleados.service';
 import { AppValidators } from '../../utils/app-validators';
+import { DenominationsUtils } from '../../utils/denominations.utils';
 
 @Component({
   selector: 'app-caja',
@@ -79,18 +80,7 @@ export class CajaComponent implements OnInit {
       nota: [''],
       amountToCharge: [null, [ Validators.required, Validators.min( 0.01 ),Validators.pattern( AppValidators.amountFormat ) ] ],
       cashProvided: [null, [ Validators.required, Validators.min( 0.01 ), Validators.pattern( AppValidators.amountFormat ) ] ],
-      denominations: this.fb.array([
-        this.fb.group({ valor: [100.00], cantidad: [0] }),
-        this.fb.group({ valor: [50.00], cantidad: [0] }),
-        this.fb.group({ valor: [20.00], cantidad: [0] }),
-        this.fb.group({ valor: [10.00], cantidad: [0] }),
-        this.fb.group({ valor: [5.00], cantidad: [0] }),
-        this.fb.group({ valor: [1.00], cantidad: [0] }),
-        this.fb.group({ valor: [0.25], cantidad: [0] }),
-        this.fb.group({ valor: [0.10], cantidad: [0] }),
-        this.fb.group({ valor: [0.05], cantidad: [0] }),
-        this.fb.group({ valor: [0.01], cantidad: [0] })
-      ])
+      denominations: DenominationsUtils.build(this.fb)
     });
   }
 
@@ -120,8 +110,8 @@ export class CajaComponent implements OnInit {
   }
 
   limpiarEfectivo() {
-    this.cajaForm.patchValue({ cashProvided: null });
-    this.denominationsFormArray.controls.forEach(ctrl => ctrl.get('cantidad')?.setValue(0));
+    this.cajaForm.patchValue({ openingCash: (0.00).toFixed(2) });
+    DenominationsUtils.clear(this.denominationsFormArray);
   }
 
   descartar() {
@@ -132,9 +122,7 @@ export class CajaComponent implements OnInit {
     this.cajaForm.get('cashProvided')?.setValue(null);
 
     // 2. Reiniciar solo la "cantidad" a 0, preservando el "valor" (100, 50, 0.25...)
-    this.denominationsFormArray.controls.forEach(ctrl => {
-      ctrl.get('cantidad')?.setValue(0);
-    });
+    DenominationsUtils.clear(this.denominationsFormArray);
 
     // 3. Quitar las marcas de error de validación
     this.cajaForm.markAsPristine();

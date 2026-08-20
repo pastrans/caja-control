@@ -6,6 +6,7 @@ import { CajaRecord } from '../../models/caja.model';
 import { MonedaBilletesComponent } from '../moneda-billetes/moneda-billetes.component';
 import { CajaService, CloseCajaPayload } from '../../services/caja.service';
 import { AppValidators } from '../../utils/app-validators';
+import { DenominationsUtils } from '../../utils/denominations.utils';
 
 @Component({
   selector: 'app-cierre-caja',
@@ -48,18 +49,7 @@ export class CierreCajaComponent implements OnInit {
     this.registerForm = this.fb.group({
       cashCount: [this.expectedCash.toFixed(2), [ Validators.required, Validators.min( 0.01 ),Validators.pattern( AppValidators.amountFormat ) ]  ],
       closingNote: ['', [Validators.maxLength(250)]],
-      denominations: this.fb.array([
-        this.fb.group({ valor: [100.00], cantidad: [0] }),
-        this.fb.group({ valor: [50.00], cantidad: [0] }),
-        this.fb.group({ valor: [20.00], cantidad: [0] }),
-        this.fb.group({ valor: [10.00], cantidad: [0] }),
-        this.fb.group({ valor: [5.00], cantidad: [0] }),
-        this.fb.group({ valor: [1.00], cantidad: [0] }),
-        this.fb.group({ valor: [0.25], cantidad: [0] }),
-        this.fb.group({ valor: [0.10], cantidad: [0] }),
-        this.fb.group({ valor: [0.05], cantidad: [0] }),
-        this.fb.group({ valor: [0.01], cantidad: [0] })
-      ])
+      denominations: DenominationsUtils.build(this.fb)
     });
 
     this.registerForm.get('cashCount')?.valueChanges.subscribe(() => {
@@ -99,7 +89,7 @@ export class CierreCajaComponent implements OnInit {
 
   limpiarEfectivo() {
     this.registerForm.patchValue({ cashCount: (0.00).toFixed(2) });
-    this.denominationsFormArray.controls.forEach(ctrl => ctrl.get('cantidad')?.setValue(0));
+    DenominationsUtils.clear(this.denominationsFormArray);
     this.updateNoteValidation();
   }
 

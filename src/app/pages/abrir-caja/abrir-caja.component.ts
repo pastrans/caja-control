@@ -6,6 +6,7 @@ import { Router } from '@angular/router';
 import { MonedaBilletesComponent } from '../../components/moneda-billetes/moneda-billetes.component';
 import { CajaService, OpenCajaPayload } from '../../services/caja.service';
 import { AppValidators } from '../../utils/app-validators';
+import { DenominationsUtils } from '../../utils/denominations.utils';
 
 @Component({
   selector: 'app-abrir-caja',
@@ -48,18 +49,7 @@ export class AbrirCajaComponent implements OnInit {
     this.cajaForm = this.fb.group({
       openingCash: [0.00, [ Validators.required, Validators.min( 0.01 ),Validators.pattern( AppValidators.amountFormat ) ] ],
       openingNote: [''],
-      denominations: this.fb.array([
-        this.fb.group({ valor: [100.00], cantidad: [0] }),
-        this.fb.group({ valor: [1.00], cantidad: [0] }),
-        this.fb.group({ valor: [50.00], cantidad: [0] }),
-        this.fb.group({ valor: [0.25], cantidad: [0] }),
-        this.fb.group({ valor: [20.00], cantidad: [0] }),
-        this.fb.group({ valor: [0.10], cantidad: [0] }),
-        this.fb.group({ valor: [10.00], cantidad: [0] }),
-        this.fb.group({ valor: [0.05], cantidad: [0] }),
-        this.fb.group({ valor: [5.00], cantidad: [0] }),
-        this.fb.group({ valor: [0.01], cantidad: [0] })
-      ])
+      denominations: DenominationsUtils.build(this.fb) 
     });
   }
 
@@ -86,7 +76,7 @@ export class AbrirCajaComponent implements OnInit {
 
   limpiarEfectivo() {
     this.cajaForm.patchValue({ openingCash: (0.00).toFixed(2) });
-    this.denominationsFormArray.controls.forEach(ctrl => ctrl.get('cantidad')?.setValue(0));
+    DenominationsUtils.clear(this.denominationsFormArray);
   }
 
   guardarApertura() {
@@ -118,6 +108,6 @@ export class AbrirCajaComponent implements OnInit {
 
   descartar() {
     this.cajaForm.patchValue({ openingCash: (0.00).toFixed(2), openingNote: '' });
-    this.denominationsFormArray.controls.forEach(ctrl => ctrl.get('cantidad')?.setValue(0));
+    DenominationsUtils.clear(this.denominationsFormArray);
   }
 }
