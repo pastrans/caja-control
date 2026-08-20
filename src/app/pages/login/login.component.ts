@@ -15,7 +15,7 @@ import { AuthService } from '../../services/auth.service';
       display: flex;
       justify-content: center;
       align-items: center;
-      background-color: #2f4f4f;
+      background-color: darkslategray; /* Mantenemos tu color original */
     }
   `
 })
@@ -26,11 +26,25 @@ export class LoginComponent {
 
   isLoading = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
+  
+  isForgotPasswordMode = signal<boolean>(false);
+  forgotSuccessMessage = signal<boolean>(false);
 
   loginForm: FormGroup = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(4)]]
   });
+
+  forgotForm: FormGroup = this.fb.group({
+    email: ['', [Validators.required, Validators.email]]
+  });
+
+  toggleMode(): void {
+    this.isForgotPasswordMode.set(!this.isForgotPasswordMode());
+    this.errorMessage.set(null);
+    this.forgotSuccessMessage.set(false);
+    this.forgotForm.reset();
+  }
 
   onSubmit(): void {
     if (this.loginForm.invalid) {
@@ -49,6 +63,28 @@ export class LoginComponent {
       error: (err) => {
         this.isLoading.set(false);
         this.errorMessage.set(err.error?.message || 'Credenciales inválidas o error de conexión.');
+      }
+    });
+  }
+
+  onForgotSubmit(): void {
+    if (this.forgotForm.invalid) {
+      this.forgotForm.markAllAsTouched();
+      return;
+    }
+
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
+    this.forgotSuccessMessage.set(false);
+
+    this.authService.forgotPassword(this.forgotForm.value).subscribe({
+      next: () => {
+        this.isLoading.set(false);
+        this.forgotSuccessMessage.set(true);
+      },
+      error: (err) => {
+        this.isLoading.set(false);
+        this.errorMessage.set(err.error?.message || 'Error al procesar la solicitud.');
       }
     });
   }

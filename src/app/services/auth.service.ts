@@ -36,6 +36,11 @@ export class AuthService {
     return this.http.post<void>(`${this.apiUrl}/forgot-password`, data);
   }
 
+  // 👇 NUEVO: Resetear la contraseña con el token
+  resetPassword(token: string, password: string): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/reset-password/${token}`, { password });
+  }
+
   logout(): void {
     this.storageService.removeItem(this.TOKEN_KEY);
     this.storageService.removeItem(this.USER_KEY);

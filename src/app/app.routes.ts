@@ -12,11 +12,17 @@ import { EmpleadosComponent } from './pages/empleados/empleados.component';
 import { ForbiddenComponent } from './pages/forbidden/forbidden.component';
 import { NotFoundComponent } from './pages/not-found/not-found.component';
 import { publicGuard } from './guards/public.guard';
+import { ResetPasswordComponent } from './pages/reset-password/reset-password.component';
 
 export const routes: Routes = [
   { path: 'login', 
     component: LoginComponent,
     canActivate: [publicGuard] },                       //  Protege contra accesos autenticados
+  { 
+    path: 'reset-password',
+    component: ResetPasswordComponent,
+    canActivate: [publicGuard] 
+  },
   { path: 'forbidden', component: ForbiddenComponent },
   {
     path: '',
