@@ -29,6 +29,7 @@ export class LoginComponent {
   
   isForgotPasswordMode = signal<boolean>(false);
   forgotSuccessMessage = signal<boolean>(false);
+  showPassword = signal<boolean>(false);
 
   loginForm: FormGroup = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -88,4 +89,9 @@ export class LoginComponent {
       }
     });
   }
+
+  togglePassword(): void {
+    this.showPassword.set(!this.showPassword());
+  }
+  
 }

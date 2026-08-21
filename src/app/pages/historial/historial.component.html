@@ -47,12 +47,40 @@
                 <th scope="row" class="text-secondary">#{{ registro.id }}</th>
                 <td>
                   {{ registro.opening.date | date:'dd/MM/yy h:mm a' }}
-                  <i class="bi bi-info-circle text-secondary ms-1" [title]="registro.opening.note" *ngIf="registro.opening.note"></i>
+                  @if (registro.opening.note) {
+                    <ng-template #openingPopContent>
+                      <div class="text-light small">
+                        <strong>Nota:</strong> <br> {{ registro.opening.note }}
+                      </div>
+                    </ng-template>
+                    <i class="bi bi-info-circle-fill text-info ms-1" 
+                       style="cursor: pointer;"
+                       [ngbPopover]="openingPopContent" 
+                       popoverTitle="Detalle de Apertura"
+                       popoverClass="popover-dark"
+                       container="body"
+                       triggers="click">
+                    </i>
+                  }
                 </td>
                 <td>
                   @if (registro.closing) {
                     {{ registro.closing.date | date:'dd/MM/yy h:mm a' }}
-                    <i class="bi bi-info-circle text-secondary ms-1" [title]="registro.closing.note" *ngIf="registro.closing.note"></i>
+                    @if (registro.closing.note) {
+                      <ng-template #closingPopContent>
+                        <div class="text-light small">
+                          <strong>Nota:</strong> <br> {{ registro.closing.note }}
+                        </div>
+                      </ng-template>
+                      <i class="bi bi-info-circle-fill text-info ms-1" 
+                         style="cursor: pointer;"
+                         [ngbPopover]="closingPopContent" 
+                         popoverTitle="Detalle de Cierre"
+                         popoverClass="popover-dark"
+                         container="body"
+                         triggers="click">
+                      </i>
+                    }
                   } @else {
                     <span class="text-muted fst-italic">Pendiente</span>
                   }

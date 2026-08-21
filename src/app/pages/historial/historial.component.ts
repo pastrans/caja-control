@@ -1,13 +1,13 @@
 import { Component, OnInit, inject, TemplateRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CajaRecord, CashInOutRecord, TransactionRecord } from '../../models/caja.model';
-import { NgbModal, NgbModalModule, NgbPaginationModule } from '@ng-bootstrap/ng-bootstrap';
+import { NgbModal, NgbModalModule, NgbPaginationModule, NgbPopoverModule } from '@ng-bootstrap/ng-bootstrap';
 import { HistorialService } from '../../services/historial.service';
 
 @Component({
   selector: 'app-historial',
   standalone: true,
-  imports: [CommonModule, NgbModalModule, NgbPaginationModule],
+  imports: [CommonModule, NgbModalModule, NgbPaginationModule, NgbPopoverModule],
   templateUrl: './historial.component.html'
 })
 export class HistorialComponent implements OnInit {

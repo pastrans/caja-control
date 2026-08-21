@@ -34,7 +34,19 @@
           <label for="password" class="form-label small fw-semibold">Contraseña</label>
           <div class="input-group">
             <span class="input-group-text"><i class="bi bi-lock text-muted"></i></span>
-            <input type="password" id="password" class="form-control border-start-0 ps-2" formControlName="password" placeholder="Ingresa tu contraseña" [class.is-invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+            <input [type]="showPassword() ? 'text' : 'password'" 
+                   id="password" 
+                   class="form-control bg-dark text-light border-secondary border-start-0 border-end-0 ps-2" 
+                   formControlName="password" 
+                   placeholder="Ingresa tu contraseña" 
+                   [class.is-invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+            
+            <button class="btn btn-outline-secondary border-secondary text-muted" 
+                    type="button" 
+                    (click)="togglePassword()" 
+                    tabindex="-1">
+              <i class="bi" [ngClass]="showPassword() ? 'bi-eye-slash-fill' : 'bi-eye-fill'"></i>
+            </button>
           </div>
           @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
             <div class="text-danger small mt-1">La contraseña es requerida.</div>

@@ -30,6 +30,17 @@ export class ResetPasswordComponent implements OnInit {
   isLoading = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
 
+  showPassword = signal<boolean>(false);
+  showConfirmPassword = signal<boolean>(false);
+
+  togglePassword(): void {
+    this.showPassword.set(!this.showPassword());
+  }
+
+  toggleConfirmPassword(): void {
+    this.showConfirmPassword.set(!this.showConfirmPassword());
+  }
+
   resetForm: FormGroup = this.fb.group({
     password: ['', [Validators.required, AppValidators.strongPassword]],
     confirmPassword: ['', [Validators.required]]
