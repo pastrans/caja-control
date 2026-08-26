@@ -1,5 +1,6 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 import { Observable, tap } from 'rxjs';
 import { AuthResponse, ForgotPasswordRequest, LoginRequest, User } from '../models/auth.models';
 import { StorageService } from './storage.service';
@@ -10,8 +11,8 @@ import { StorageService } from './storage.service';
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly storageService = inject(StorageService);
+  private readonly endpoint = `${environment.apiUrl}/auth`;
 
-  private readonly apiUrl = 'http://localhost:3001/api/v1/auth';
   private readonly TOKEN_KEY = 'auth_token';
   private readonly USER_KEY = 'auth_user';
 
@@ -23,7 +24,7 @@ export class AuthService {
   userRole = computed(() => this.currentUser()?.role ?? null);
 
   login(credentials: LoginRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials).pipe(
+    return this.http.post<AuthResponse>(`${this.endpoint}/login`, credentials).pipe(
       tap((res) => {
         this.storageService.setItem(this.TOKEN_KEY, res.token);
         this.storageService.setItem(this.USER_KEY, JSON.stringify(res.user));
@@ -33,12 +34,12 @@ export class AuthService {
   }
 
   forgotPassword(data: ForgotPasswordRequest): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/forgot-password`, data);
+    return this.http.post<void>(`${this.endpoint}/forgot-password`, data);
   }
 
   // 👇 NUEVO: Resetear la contraseña con el token
   resetPassword(token: string, password: string): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/reset-password/${token}`, { password });
+    return this.http.post<void>(`${this.endpoint}/reset-password/${token}`, { password });
   }
 
   logout(): void {
