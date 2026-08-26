@@ -8,8 +8,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const router = inject(Router);
   const token = authService.getToken();
-  console.log(`🌐 Interceptor atrapó la petición hacia: ${req.url}`);
-  console.log(`🔑 Token inyectado:`, token);
 
   // Clonar la petición para inyectar el Bearer token si existe
   let authReq = req;
