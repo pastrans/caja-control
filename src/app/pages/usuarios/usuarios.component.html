@@ -201,11 +201,11 @@
             id="contrasena" 
             class="form-control bg-dark text-light border-secondary" 
             formControlName="contrasena"
-            [placeholder]="isEditMode ? 'Dejar en blanco para no modificar' : 'Mínimo 8 caracteres, 1 mayúscula, 1 número y 1 especial'"
-            [class.is-invalid]="usuarioForm.get('contrasena')?.invalid && usuarioForm.get('contrasena')?.touched"
+            [placeholder]="isEditMode ? 'Dejar en blanco para conservar la actual' : 'Mínimo 8 caracteres...'"
           >
+          
           @if (usuarioForm.get('contrasena')?.invalid && usuarioForm.get('contrasena')?.touched) {
-            <div class="invalid-feedback">
+            <div class="invalid-feedback d-block">
               @if (usuarioForm.get('contrasena')?.errors?.['required']) {
                 La contraseña es requerida.
               } @else if (usuarioForm.get('contrasena')?.errors?.['strongPassword']) {
@@ -243,7 +243,7 @@
       type="button" 
       class="btn btn-primary d-flex align-items-center gap-2" 
       (click)="guardarUsuario()" 
-      [disabled]="usuarioForm.invalid || isLoading()"
+      [disabled]="isLoading()"
     >
       @if (isLoading()) {
         <span class="spinner-border spinner-border-sm" role="status"></span>

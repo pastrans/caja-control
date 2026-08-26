@@ -89,6 +89,8 @@ export class UsuariosComponent implements OnInit {
     this.isEditMode = !!usuario;
     this.errorMessage.set(null);
 
+    const passwordControl = this.usuarioForm.get('contrasena');
+
     if (usuario) {
       this.usuarioSeleccionado = usuario;
       this.usuarioForm.patchValue({
@@ -99,8 +101,9 @@ export class UsuariosComponent implements OnInit {
         habilitado: usuario.habilitado,
         contrasena: ''
       });
-      this.usuarioForm.get('contrasena')?.addValidators([AppValidators.strongPassword]);
-      this.usuarioForm.get('contrasena')?.updateValueAndValidity();
+      passwordControl?.clearValidators();
+      passwordControl?.addValidators([AppValidators.strongPassword]);
+      passwordControl?.updateValueAndValidity();
     } else {
       this.usuarioSeleccionado = null;
       this.usuarioForm.reset({
@@ -111,8 +114,9 @@ export class UsuariosComponent implements OnInit {
         role: 'Cajero',
         habilitado: true
       });
-      this.usuarioForm.get('contrasena')?.setValidators([Validators.required, AppValidators.strongPassword]);
-      this.usuarioForm.get('contrasena')?.updateValueAndValidity();
+      passwordControl?.clearValidators();
+      passwordControl?.setValidators([Validators.required, AppValidators.strongPassword]);
+      passwordControl?.updateValueAndValidity();
     }
 
     this.modalRef = this.modalService.open(content, { centered: true });
@@ -126,8 +130,14 @@ export class UsuariosComponent implements OnInit {
 
     this.isLoading.set(true);
 
+    const formValue = { ...this.usuarioForm.value };
+
+    if (this.isEditMode && !formValue.contrasena) {
+      delete formValue.contrasena;
+    }
+
     if (this.isEditMode && this.usuarioSeleccionado) {
-      this.usuariosService.updateUsuario(this.usuarioSeleccionado.id, this.usuarioForm.value).subscribe({
+      this.usuariosService.updateUsuario(this.usuarioSeleccionado.id, formValue).subscribe({
         next: () => {
           this.isLoading.set(false);
           this.modalRef?.close();
@@ -139,7 +149,7 @@ export class UsuariosComponent implements OnInit {
         }
       });
     } else {
-      this.usuariosService.createUsuario(this.usuarioForm.value).subscribe({
+      this.usuariosService.createUsuario(formValue).subscribe({
         next: () => {
           this.isLoading.set(false);
           this.modalRef?.close();
