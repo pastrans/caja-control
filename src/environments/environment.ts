@@ -1,4 +1,4 @@
 export const environment = {
-  production: false,
-  apiUrl: 'http://localhost:3001/api/v1' // Ajusta a la URL de tu API
+  production: true,
+  apiUrl: 'https://caja-api-production-7bb3.up.railway.app/api/v1' // Ajusta a la URL de tu API
 };
