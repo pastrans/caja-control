@@ -122,7 +122,15 @@ export class EmpleadosComponent implements OnInit {
     } else {
       // (Creación se mantiene igual o puedes mandarlo si tu endpoint de crear lo soporta)
       this.empleadosService.createEmpleado(nombre).subscribe({
-        // ...resto del código
+        next: () => {
+          this.isLoading.set(false);
+          this.modalRef?.close();
+          this.cargarEmpleados(1); // Forzamos a ir a la página 1 para ver el empleado recién creado
+        },
+        error: (err) => {
+          this.errorMessage.set(err.error?.message || 'Error al crear empleado.');
+          this.isLoading.set(false);
+        }
       });
     }
   }
