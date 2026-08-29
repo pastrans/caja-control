@@ -117,6 +117,8 @@ export class CajaComponent implements OnInit {
     // Solo copia el valor si existe y es mayor a 0
     if (amount && amount > 0) {
       this.cajaForm.patchValue({ cashProvided: amount });
+    }else {
+      this.cajaForm.get('amountToCharge')?.markAsTouched();
     }
   }
 
