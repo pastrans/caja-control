@@ -111,6 +111,14 @@ export class CajaComponent implements OnInit {
         }
       );
   }
+  cabal() {
+    const amount = this.amountToCharge;
+    
+    // Solo copia el valor si existe y es mayor a 0
+    if (amount && amount > 0) {
+      this.cajaForm.patchValue({ cashProvided: amount });
+    }
+  }
 
   confirmarDesglose(modal: any) {
     this.cajaForm.patchValue(

@@ -1,4 +1,4 @@
-import { Component, inject, TemplateRef, OnInit, signal } from '@angular/core';
+import { Component, inject, TemplateRef, OnInit, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { NgbModal, NgbModalModule } from '@ng-bootstrap/ng-bootstrap';
@@ -16,6 +16,9 @@ import { DenominationsUtils } from '../../utils/denominations.utils';
   styleUrl: './abrir-caja.component.css'
 })
 export class AbrirCajaComponent implements OnInit {
+  
+  @ViewChild('modalConfirmarCero') modalConfirmarCero!: TemplateRef<any>;
+
   private readonly modalService = inject(NgbModal);
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
@@ -47,7 +50,7 @@ export class AbrirCajaComponent implements OnInit {
 
   initForm(): void {
     this.cajaForm = this.fb.group({
-      openingCash: [0.00, [ Validators.required, Validators.min( 0.01 ),Validators.pattern( AppValidators.amountFormat ) ] ],
+      openingCash: [0.00, [ Validators.required, Validators.min(0), Validators.pattern(AppValidators.amountFormat) ] ],      
       openingNote: [''],
       denominations: DenominationsUtils.build(this.fb) 
     });
@@ -92,12 +95,35 @@ export class AbrirCajaComponent implements OnInit {
   }
 
   guardarApertura() {
+    if (this.cajaForm.invalid) {
+      this.cajaForm.markAllAsTouched();
+      return;
+    }
+
+    const cash = Number(this.cajaForm.value.openingCash) || 0;
+
+    // Si es 0, lanzamos el modal de confirmación
+    if (cash === 0) {
+      this.modalService.open(this.modalConfirmarCero, { centered: true }).result.then(
+        (result) => { 
+          if (result === 'confirm') {
+            this.ejecutarAperturaApi(); // Si confirma, procede
+          }
+        },
+        (reason) => { /* Modal cancelado o cerrado, no hacemos nada */ }
+      );
+    } else {
+      // Si es mayor a 0, procede directamente
+      this.ejecutarAperturaApi();
+    }
+  }
+
+  private ejecutarAperturaApi() {
     this.isSubmitting.set(true);
     this.errorMessage.set(null);
 
     const formValues = this.cajaForm.value;
     
-    // Mapeo al payload que espera la API
     const payload: OpenCajaPayload = {
       cash: Number(formValues.openingCash) || 0,
       note: formValues.openingNote || '',
@@ -122,4 +148,5 @@ export class AbrirCajaComponent implements OnInit {
     this.cajaForm.patchValue({ openingCash: (0.00).toFixed(2), openingNote: '' });
     DenominationsUtils.clear(this.denominationsFormArray);
   }
+  
 }

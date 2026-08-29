@@ -15,7 +15,7 @@ import { DenominationsUtils } from '../../utils/denominations.utils';
   templateUrl: './cierre-caja.component.html'
 })
 export class CierreCajaComponent implements OnInit {
-  @Input() activeSession!: CajaRecord; // Recibe toda la sesión de CajaComponent
+  @Input() activeSession!: CajaRecord; 
   
   public activeModal = inject(NgbActiveModal);
   private fb = inject(FormBuilder);
@@ -26,7 +26,6 @@ export class CierreCajaComponent implements OnInit {
   isSubmitting = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
 
-  // Valores calculados
   openingAmount: number = 0;
   totalTransactionsCount: number = 0;
   totalTransactionsAmount: number = 0;
@@ -47,13 +46,14 @@ export class CierreCajaComponent implements OnInit {
     }
 
     this.registerForm = this.fb.group({
-      cashCount: [this.expectedCash.toFixed(2), [ Validators.required, Validators.min( 0.01 ),Validators.pattern( AppValidators.amountFormat ) ]  ],
+      cashCount: [this.expectedCash.toFixed(2), [ Validators.required, Validators.min(0.01), Validators.pattern(AppValidators.amountFormat) ] ],
       closingNote: ['', [Validators.maxLength(250)]],
       denominations: DenominationsUtils.build(this.fb)
     });
+
     this.registerForm.get('cashCount')?.valueChanges.subscribe(() => {
-      DenominationsUtils.clear(this.denominationsFormArray); // Limpiamos denominaciones
-      this.updateNoteValidation(); // Se evalúa si hace falta la nota
+      DenominationsUtils.clear(this.denominationsFormArray); 
+      this.updateNoteValidation(); 
     });
 
     this.updateNoteValidation();
@@ -82,7 +82,6 @@ export class CierreCajaComponent implements OnInit {
     this.modalService.open(content, { centered: true, size: 'lg' }).result.then(
         () => {},
         () => {
-          // Limpiar si descarta el modal
           DenominationsUtils.clear(this.denominationsFormArray);
         }
       );
@@ -93,7 +92,7 @@ export class CierreCajaComponent implements OnInit {
       { cashCount: this.totalModal.toFixed(2) },
       { emitEvent: false }
     );
-    this.updateNoteValidation(); // Disparamos la validación de la nota manualmente
+    this.updateNoteValidation(); 
     modal.close('Confirmed');
   }
 
@@ -103,12 +102,25 @@ export class CierreCajaComponent implements OnInit {
     this.updateNoteValidation();
   }
 
-  onSubmit(): void {
+  // NUEVO: Método que lanza el modal de confirmación antes del envío
+  abrirConfirmacion(content: TemplateRef<any>): void {
     if (this.registerForm.invalid) {
       this.registerForm.markAllAsTouched();
       return;
     }
 
+    // Usamos backdrop: 'static' para que no se cierre por error al hacer click afuera
+    this.modalService.open(content, { centered: true, backdrop: 'static' }).result.then(
+      (result) => {
+        if (result === 'Confirmar') {
+          this.onSubmit();
+        }
+      },
+      () => { /* Se canceló el segundo modal, no hacemos nada */ }
+    );
+  }
+
+  onSubmit(): void {
     this.isSubmitting.set(true);
     this.errorMessage.set(null);
 
@@ -124,10 +136,10 @@ export class CierreCajaComponent implements OnInit {
         .filter((d: any) => d.cantidad > 0)
         .map((d: any) => ({ value: d.valor, quantity: d.cantidad }))
     };
-    console.log('📦 Payload a enviar al cierre:', payload);
 
     this.cajaService.closeCaja(payload).subscribe({
       next: () => {
+        // Cierra el modal principal de cierre
         this.activeModal.close('Close Register');
       },
       error: (err) => {

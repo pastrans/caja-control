@@ -78,6 +78,7 @@
                          [class.is-invalid]="cajaForm.get('cashProvided')?.invalid && cajaForm.get('cashProvided')?.touched">
                   <button type="button" class="btn btn-outline-secondary border-secondary" (click)="limpiarEfectivo()"><i class="bi bi-x-lg"></i></button>
                   <button class="btn btn-outline-primary px-3" type="button" (click)="abrirModalBilletes(modalBilletes)"><i class="bi bi-cash-stack"></i></button>
+                  <button class="btn btn-outline-info px-3" type="button" (click)="cabal()"> cabal </button>
                 </div>
                 <!-- Mensajes de error -->
                 @if (cajaForm.get('cashProvided')?.invalid && cajaForm.get('cashProvided')?.touched) {
