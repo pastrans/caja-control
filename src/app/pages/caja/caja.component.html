@@ -27,18 +27,6 @@
           }
           
           <form [formGroup]="cajaForm" (ngSubmit)="guardarCobro()">
-            <div class="mb-3">
-              <label class="form-label small fw-semibold text-secondary">Empleado / Vendedor</label>
-              <select class="form-select bg-dark text-light border-secondary" formControlName="empleado" [class.is-invalid]="cajaForm.get('empleado')?.invalid && cajaForm.get('empleado')?.touched">
-                <option value="" disabled selected>Seleccione un empleado...</option>
-                @for (emp of empleadas; track emp.id) {
-                  <option [value]="emp.id">{{ emp.nombre }}</option>
-                }
-              </select>
-              @if (cajaForm.get('empleado')?.invalid && cajaForm.get('empleado')?.touched) {
-                <div class="invalid-feedback">Debe seleccionar un empleado.</div>
-              }
-            </div>
 
             <div class="row">
               <!-- Cantidad a cobrar -->
@@ -68,7 +56,7 @@
               <!-- Efectivo entregado -->
               <div class="col-md-6 mb-3">
                 <label class="form-label small fw-semibold text-secondary">Efectivo entregado</label>
-                <div class="input-group">
+                <div class="input-group mb-2">
                   <span class="input-group-text bg-dark border-secondary text-secondary">$</span>
                   <input type="number" 
                          class="form-control bg-dark text-light border-secondary" 
@@ -78,7 +66,7 @@
                          [class.is-invalid]="cajaForm.get('cashProvided')?.invalid && cajaForm.get('cashProvided')?.touched">
                   <button type="button" class="btn btn-outline-secondary border-secondary" (click)="limpiarEfectivo()"><i class="bi bi-x-lg"></i></button>
                   <button class="btn btn-outline-primary px-3" type="button" (click)="abrirModalBilletes(modalBilletes)"><i class="bi bi-cash-stack"></i></button>
-                  <button class="btn btn-outline-info px-3" type="button" (click)="cabal()"> cabal </button>
+                  <button class="btn btn-outline-info px-3 fw-semibold" type="button" (click)="cabal()">Cabal</button>
                 </div>
                 <!-- Mensajes de error -->
                 @if (cajaForm.get('cashProvided')?.invalid && cajaForm.get('cashProvided')?.touched) {
@@ -90,6 +78,21 @@
                     }
                   </div>
                 }
+                
+                <!-- NUEVO: Botones rápidos y checkbox de billete responsivos -->
+                <div class="d-flex flex-wrap align-items-center gap-3 mt-2">
+                  <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-secondary border-secondary text-light fw-medium" (click)="asignar(50)">$ 50</button>
+                    <button type="button" class="btn btn-outline-secondary border-secondary text-light fw-medium" (click)="asignar(20)">$ 20</button>
+                    <button type="button" class="btn btn-outline-secondary border-secondary text-light fw-medium" (click)="asignar(10)">$ 10</button>
+                    <button type="button" class="btn btn-outline-secondary border-secondary text-light fw-medium" (click)="asignar(5)">$ 5</button>
+                  </div>
+                  
+                  <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" role="switch" id="isBilleteCheck" formControlName="isBillete">
+                    <label class="form-check-label small text-secondary user-select-none" for="isBilleteCheck">Billete exacto</label>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -104,6 +107,31 @@
                 <span class="fs-4 fw-bold">${{ changeReturned | number:'1.2-2' }}</span>
               </div>
             }
+
+            <!-- NUEVO: Selector de Empleados con Radio Buttons -->
+            <div class="mb-4 pt-2">
+              <label class="form-label small fw-semibold text-secondary d-block mb-3">Empleado</label>
+              <div class="d-flex flex-wrap gap-3 p-3 border border-secondary rounded bg-dark-subtle">
+                @for (emp of empleadas; track emp.id) {
+                  <div class="form-check form-check-inline m-0">
+                    <input class="form-check-input border-secondary" type="radio" 
+                           formControlName="empleado" 
+                           [id]="'empleado_' + emp.id" 
+                           [value]="emp.id">
+                    <label class="form-check-label text-light fw-medium cursor-pointer" [for]="'empleado_' + emp.id">
+                      {{ emp.nombre }}
+                    </label>
+                  </div>
+                }
+                @empty {
+                  <span class="text-muted small fst-italic">No hay empleados habilitados.</span>
+                }
+              </div>
+              @if (cajaForm.get('empleado')?.invalid && cajaForm.get('empleado')?.touched) {
+                <div class="text-danger small mt-2">Debe seleccionar un empleado.</div>
+              }
+            </div>
+
 
             <div class="d-flex gap-2 justify-content-end mt-4">
               <button type="button" class="btn btn-outline-secondary px-4 py-2" (click)="descartar()" [disabled]="isSubmitting()">Limpiar</button>
@@ -174,7 +202,7 @@
             <table class="table table-hover align-middle table-dark mb-0 text-nowrap">
               <thead class="table-secondary">
                 <tr>
-                  <th scope="col" style="width: 80px;">ID</th>
+                  <th scope="col" style="width: 80px;">#</th>
                   <th scope="col">Hora</th>
                   <th scope="col">Empleado</th>
                   <th scope="col">Cobrado</th>
@@ -187,7 +215,7 @@
               <tbody>
                 @for (record of records; track record.id; let i = $index) {
                   <tr>
-                    <th scope="row" class="text-secondary">#{{ record.id }}</th>
+                    <th scope="row" class="text-secondary">#{{ i + 1 }}</th>
                     <td class="text-secondary">{{ record.date | date:'shortTime' }}</td>
                     <td>{{ record.empleadoNombre }}</td>
                     <td class="text-primary fw-semibold">{{ record.amountToCharge | currency:'USD':'symbol':'1.2-2' }}</td>

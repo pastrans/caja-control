@@ -46,7 +46,6 @@ export class CajaComponent implements OnInit {
   }
 
   cargarEmpleados() {
-    // Cargamos empleados activos (100 como límite temporal para el select)
     this.empleadosService.getEmpleados(1, 100).subscribe(res => {
       this.empleadas = res.empleados.filter(e => e.habilitado);
     });
@@ -61,7 +60,6 @@ export class CajaComponent implements OnInit {
         }
         
         this.activeSession = caja;
-        // Ordenamos descendente para ver lo más reciente arriba
         this.records = [...(caja.transactions || [])].sort((a, b) => b.date.getTime() - a.date.getTime());
         this.cashRecords = [...(caja.cashInOut || [])].sort((a, b) => b.date.getTime() - a.date.getTime());
         
@@ -78,8 +76,9 @@ export class CajaComponent implements OnInit {
     this.cajaForm = this.fb.group({
       empleado: ['', Validators.required],
       nota: [''],
-      amountToCharge: [null, [ Validators.required, Validators.min( 0.01 ),Validators.pattern( AppValidators.amountFormat ) ] ],
-      cashProvided: [null, [ Validators.required, Validators.min( 0.01 ), Validators.pattern( AppValidators.amountFormat ) ] ],
+      amountToCharge: [null, [ Validators.required, Validators.min(0.01), Validators.pattern(AppValidators.amountFormat) ] ],
+      cashProvided: [null, [ Validators.required, Validators.min(0.01), Validators.pattern(AppValidators.amountFormat) ] ],
+      isBillete: [false], // <--- NUEVO CONTROLADOR PARA EL CHECKBOX
       denominations: DenominationsUtils.build(this.fb)
     });
     this.cajaForm.get('cashProvided')?.valueChanges.subscribe(() => {
@@ -111,13 +110,12 @@ export class CajaComponent implements OnInit {
         }
       );
   }
+
   cabal() {
     const amount = this.amountToCharge;
-    
-    // Solo copia el valor si existe y es mayor a 0
     if (amount && amount > 0) {
       this.cajaForm.patchValue({ cashProvided: amount });
-    }else {
+    } else {
       this.cajaForm.get('amountToCharge')?.markAsTouched();
     }
   }
@@ -131,21 +129,23 @@ export class CajaComponent implements OnInit {
   }
 
   limpiarEfectivo() {
-    this.cajaForm.patchValue({ openingCash: (0.00).toFixed(2) });
+    this.cajaForm.patchValue({ cashProvided: null });
     DenominationsUtils.clear(this.denominationsFormArray);
   }
 
+  asignar(valor: number) {
+    this.cajaForm.patchValue({ cashProvided: valor.toFixed(2) });
+  }
+
   descartar() {
-    // 1. Limpiar campos individuales sin usar reset() en todo el formulario
     this.cajaForm.get('empleado')?.setValue('');
     this.cajaForm.get('nota')?.setValue('');
     this.cajaForm.get('amountToCharge')?.setValue(null);
     this.cajaForm.get('cashProvided')?.setValue(null);
+    this.cajaForm.get('isBillete')?.setValue(false); // <--- LIMPIAR CHECKBOX
 
-    // 2. Reiniciar solo la "cantidad" a 0, preservando el "valor" (100, 50, 0.25...)
     DenominationsUtils.clear(this.denominationsFormArray);
 
-    // 3. Quitar las marcas de error de validación
     this.cajaForm.markAsPristine();
     this.cajaForm.markAsUntouched();
     this.errorMessage.set(null);
@@ -171,6 +171,20 @@ export class CajaComponent implements OnInit {
     this.isSubmitting.set(true);
     this.errorMessage.set(null);
 
+    let denominations: any[] = this.cajaForm.value.denominations
+        .filter((d: any) => d.cantidad > 0)
+        .map((d: any) => ({ value: d.valor, quantity: d.cantidad }))
+
+    // LÓGICA DEL CHECKBOX DE BILLETE EXACTO
+    if (denominations.length === 0 && this.cajaForm.value.isBillete) {
+      const predefinedDenominations = [50, 20, 10, 5];
+      const providedNum = Number(this.cajaForm.value.cashProvided);
+      
+      if (predefinedDenominations.includes(providedNum)) {
+        denominations.push({ value: providedNum, quantity: 1 });
+      }
+    }
+
     const payload: TransactionPayload = {
       cashRegisterRecordId: this.activeSession!.id,
       amountToCharge: Number(this.amountToCharge),
@@ -178,9 +192,7 @@ export class CajaComponent implements OnInit {
       changeReturned: Number(this.changeReturned),
       employeeId: Number(this.cajaForm.value.empleado),
       note: this.cajaForm.value.nota || '',
-      denominations: this.cajaForm.value.denominations
-        .filter((d: any) => d.cantidad > 0)
-        .map((d: any) => ({ value: d.valor, quantity: d.cantidad }))
+      denominations: denominations
     };
 
     this.cajaService.registerTransaction(payload).subscribe({
@@ -201,8 +213,6 @@ export class CajaComponent implements OnInit {
 
   abrirModalCashInOut() {
     const modalRef = this.modalService.open(SalidaEfectivoComponent, { centered: true });
-    
-    // Le pasamos el ID de la caja activa al componente modal
     modalRef.componentInstance.cashRegisterRecordId = this.activeSession?.id;
 
     modalRef.result.then((newRecord: CashInOutRecord) => {
@@ -217,8 +227,6 @@ export class CajaComponent implements OnInit {
 
   abrirModalCerrarCaja() {
     const modalRef = this.modalService.open(CierreCajaComponent, { centered: true, size: 'md' });
-    
-    // Le pasamos la sesión activa entera para que haga sus cálculos
     modalRef.componentInstance.activeSession = this.activeSession;
 
     modalRef.result.then((result) => {
