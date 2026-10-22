@@ -17,8 +17,8 @@ import { RouterLink } from '@angular/router';
           No cuentas con los permisos o el rol necesario para acceder a este módulo.
         </p>
         <div class="d-flex justify-content-center gap-2">
-          <a routerLink="/caja" class="btn btn-outline-light px-4 py-2">
-            <i class="bi bi-arrow-left me-1"></i> Volver a Caja
+          <a routerLink="/" class="btn btn-outline-light px-4 py-2">
+            <i class="bi bi-arrow-left me-1"></i> Volver al Inicio
           </a>
         </div>
       </div>

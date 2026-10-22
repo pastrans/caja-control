@@ -1,0 +1,33 @@
+/* Un solo tono para la serie (azul 400 de Bootstrap, validado contra fondo oscuro) */
+:host { --serie: #3d8bfd; --serie-activa: #6ea8fe; }
+
+.chart-alto { height: 260px; }
+
+.chart { position: relative; height: 260px; margin-left: 56px; padding-bottom: 24px; }
+
+.chart-plot { position: absolute; inset: 0 0 24px 0; }
+.chart-grid { position: absolute; left: 0; right: 0; border-top: 1px solid var(--bs-border-color-translucent); }
+.chart-grid span {
+  position: absolute; right: 100%; transform: translateY(-50%);
+  padding-right: 8px; font-size: .75rem; color: var(--bs-secondary-color);
+}
+
+.chart-barras { display: flex; align-items: flex-end; }
+.chart-col { flex: 1; height: 100%; display: flex; align-items: flex-end; min-width: 0; }
+.chart-bar { width: 100%; background: var(--serie); border-radius: 4px 4px 0 0; }
+.chart-bar.activa { background: var(--serie-activa); }
+
+.chart-tooltip {
+  position: absolute; top: 0; transform: translateX(-50%);
+  padding: .4rem .6rem; pointer-events: none; white-space: nowrap; z-index: 2;
+}
+
+.chart-x { position: absolute; left: 0; right: 0; bottom: 0; display: flex; }
+.chart-x span {
+  flex: 1; min-width: 0; overflow: visible; white-space: nowrap;
+  font-size: .7rem; color: var(--bs-secondary-color);
+}
+
+.chart-fill { background: var(--serie); }
+.empleados-lista { max-height: 340px; }
+.empleado-activo { box-shadow: inset 3px 0 0 var(--serie); background: var(--bs-tertiary-bg) !important; }

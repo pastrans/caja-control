@@ -59,7 +59,7 @@ export class LoginComponent {
     this.authService.login(this.loginForm.value).subscribe({
       next: () => {
         this.isLoading.set(false);
-        this.router.navigate(['/caja']);
+        this.router.navigateByUrl(this.authService.homeUrl());
       },
       error: (err) => {
         this.isLoading.set(false);

@@ -17,7 +17,7 @@ import { RouterLink } from '@angular/router';
           La ruta que buscas no existe, ha cambiado de lugar o fue eliminada.
         </p>
         <div class="d-flex justify-content-center gap-2">
-          <a routerLink="/caja" class="btn btn-primary px-4 py-2">
+          <a routerLink="/" class="btn btn-primary px-4 py-2">
             <i class="bi bi-house-door me-1"></i> Ir al Inicio
           </a>
         </div>

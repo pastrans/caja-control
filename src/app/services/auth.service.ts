@@ -57,6 +57,11 @@ export class AuthService {
     return role ? allowedRoles.includes(role) : false;
   }
 
+  // Pantalla de inicio por rol: el dashboard es solo para ADMIN
+  homeUrl(): string {
+    return this.hasRole(['ADMIN']) ? '/inicio' : '/caja';
+  }
+
   private getStoredUser(): User | null {
     const rawUser = this.storageService.getItem(this.USER_KEY);
     if (!rawUser) return null;

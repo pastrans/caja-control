@@ -12,6 +12,8 @@ import { EmpleadosComponent } from './pages/empleados/empleados.component';
 import { ForbiddenComponent } from './pages/forbidden/forbidden.component';
 import { NotFoundComponent } from './pages/not-found/not-found.component';
 import { publicGuard } from './guards/public.guard';
+import { homeGuard } from './guards/home.guard';
+import { InicioComponent } from './pages/inicio/inicio.component';
 import { ResetPasswordComponent } from './pages/reset-password/reset-password.component';
 
 export const routes: Routes = [
@@ -29,6 +31,12 @@ export const routes: Routes = [
     component: MainLayoutComponent,
     canActivate: [authGuard],
     children: [
+      {
+        path: 'inicio',
+        component: InicioComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN'] }
+      },
       { path: 'caja', component: CajaComponent },
       { path: 'abrir-caja', component: AbrirCajaComponent },
       { path: 'historial', component: HistorialComponent },
@@ -44,7 +52,7 @@ export const routes: Routes = [
         canActivate: [roleGuard],
         data: { roles: ['ADMIN'] }
       },
-      { path: '', redirectTo: 'caja', pathMatch: 'full' }
+      { path: '', pathMatch: 'full', canActivate: [homeGuard], children: [] } // ADMIN → /inicio, CASHIER → /caja
     ]
   },
   { path: '404', component: NotFoundComponent },

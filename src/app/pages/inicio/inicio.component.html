@@ -1,0 +1,262 @@
+<div class="container mt-4" data-bs-theme="dark">
+  <!-- Encabezado -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h2 class="fw-bold mb-1">Inicio</h2>
+      <p class="text-secondary small mb-0">
+        Resumen de ventas del negocio
+        @if (summary(); as s) {
+          · Actualizado {{ s.generatedAt | date:'dd/MM/yy h:mm a' }}
+        }
+      </p>
+    </div>
+    <button class="btn btn-outline-light" (click)="refrescar()">
+      <i class="bi bi-arrow-clockwise"></i> Refrescar
+    </button>
+  </div>
+
+  <!-- Alerta de Error -->
+  @if (errorMessage()) {
+    <div class="alert alert-danger alert-dismissible fade show small" role="alert">
+      <i class="bi bi-exclamation-octagon me-1"></i> {{ errorMessage() }}
+      <button type="button" class="btn-close" (click)="errorMessage.set(null)" aria-label="Close"></button>
+    </div>
+  }
+
+  <!-- KPIs del periodo en curso -->
+  <div class="row g-3 mb-4">
+    @if (isLoadingSummary() && !summary()) {
+      @for (i of [1, 2, 3, 4]; track i) {
+        <div class="col-6 col-lg-3">
+          <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+            <div class="card-body placeholder-glow">
+              <span class="placeholder col-6 mb-3"></span>
+              <span class="placeholder placeholder-lg col-9 d-block mb-2"></span>
+              <span class="placeholder col-7"></span>
+            </div>
+          </div>
+        </div>
+      }
+    } @else {
+      @for (kpi of kpis(); track kpi.label) {
+        <div class="col-6 col-lg-3">
+          <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+            <div class="card-body">
+              <div class="d-flex align-items-center gap-2 text-secondary small fw-semibold text-uppercase mb-2">
+                <i class="bi {{ kpi.icon }}"></i> {{ kpi.label }}
+              </div>
+              <div class="fs-3 fw-bold text-light text-truncate">
+                {{ kpi.data.total | currency:'USD':'symbol':'1.2-2' }}
+              </div>
+              <div class="small text-secondary">
+                {{ kpi.data.count }} {{ kpi.data.count === 1 ? 'venta' : 'ventas' }}
+                <span class="d-none d-sm-inline">· Ticket prom. {{ kpi.data.averageTicket | currency:'USD':'symbol':'1.2-2' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    }
+  </div>
+
+  <!-- Filtros del rango (una sola fila sobre las gráficas) -->
+  <div class="card border-secondary shadow-sm mb-3 bg-dark-subtle">
+    <div class="card-body py-2 d-flex flex-wrap align-items-center gap-2">
+      <div class="btn-group btn-group-sm" role="group" aria-label="Rango rápido">
+        @for (p of presets; track p.id) {
+          <button
+            type="button"
+            class="btn"
+            [class.btn-light]="preset() === p.id"
+            [class.btn-outline-secondary]="preset() !== p.id"
+            (click)="seleccionarPreset(p.id)"
+          >
+            {{ p.label }}
+          </button>
+        }
+      </div>
+
+      <div class="d-flex align-items-center gap-1">
+        <input type="date" class="form-control form-control-sm" aria-label="Desde"
+               [max]="range().to"
+               [ngModel]="range().from" (ngModelChange)="cambiarFecha('from', $event)">
+        <span class="text-secondary small">a</span>
+        <input type="date" class="form-control form-control-sm" aria-label="Hasta"
+               [min]="range().from"
+               [ngModel]="range().to" (ngModelChange)="cambiarFecha('to', $event)">
+      </div>
+
+      <select class="form-select form-select-sm w-auto ms-md-auto" aria-label="Empleado"
+              [ngModel]="employeeId()" (ngModelChange)="toggleEmpleado($event)">
+        <option [ngValue]="null">Todos los empleados</option>
+        @for (e of empleados(); track e.employeeId) {
+          <option [ngValue]="e.employeeId">{{ e.name }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <!-- Ventas en el tiempo -->
+    <div class="col-lg-8">
+      <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+        <div class="card-header border-secondary d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <div>
+            <h6 class="fw-bold mb-0">
+              Ventas en el tiempo
+              @if (empleadoSeleccionado(); as emp) {
+                <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle ms-1">
+                  {{ emp.name }}
+                  <button type="button" class="btn-close btn-close-white ms-1 align-middle" style="font-size: .5rem;"
+                          aria-label="Quitar filtro" (click)="toggleEmpleado(null)"></button>
+                </span>
+              }
+            </h6>
+            @if (serie(); as s) {
+              <span class="small text-secondary">
+                {{ s.total | currency:'USD':'symbol':'1.2-2' }} en {{ s.count }} {{ s.count === 1 ? 'venta' : 'ventas' }}
+              </span>
+            }
+          </div>
+          <div class="d-flex gap-2">
+            <div class="btn-group btn-group-sm" role="group" aria-label="Agrupar por">
+              @for (g of agrupaciones; track g.id) {
+                <button
+                  type="button"
+                  class="btn"
+                  [class.btn-light]="groupBy() === g.id"
+                  [class.btn-outline-secondary]="groupBy() !== g.id"
+                  (click)="seleccionarAgrupacion(g.id)"
+                >
+                  {{ g.label }}
+                </button>
+              }
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary"
+                    [title]="vistaTabla() ? 'Ver gráfica' : 'Ver tabla'"
+                    (click)="vistaTabla.set(!vistaTabla())">
+              <i class="bi" [class.bi-bar-chart-fill]="vistaTabla()" [class.bi-table]="!vistaTabla()"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="card-body">
+          @if (isLoadingSerie() && !serie()) {
+            <div class="d-flex align-items-center justify-content-center text-secondary chart-alto">
+              <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+              Cargando gráfica...
+            </div>
+          } @else if (barras().length === 0) {
+            <div class="d-flex align-items-center justify-content-center text-secondary chart-alto">
+              Sin datos para el rango seleccionado
+            </div>
+          } @else if (vistaTabla()) {
+            <div class="table-responsive chart-alto overflow-auto">
+              <table class="table table-sm table-dark table-hover align-middle mb-0 small">
+                <thead>
+                  <tr>
+                    <th scope="col">Periodo</th>
+                    <th scope="col" class="text-end">Ventas</th>
+                    <th scope="col" class="text-end">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (b of barras(); track b.period) {
+                    <tr>
+                      <td>{{ b.etiqueta }}</td>
+                      <td class="text-end">{{ b.count }}</td>
+                      <td class="text-end">{{ b.total | currency:'USD':'symbol':'1.2-2' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="chart" [class.opacity-50]="isLoadingSerie()" (mouseleave)="hoveredIndex.set(null)">
+              <!-- Líneas guía y eje Y -->
+              <div class="chart-plot">
+                @for (v of escalaY(); track $index) {
+                  <div class="chart-grid" [style.bottom.%]="(v / maxY()) * 100">
+                    <span>{{ v | currency:'USD':'symbol':'1.0-0' }}</span>
+                  </div>
+                }
+              </div>
+
+              <!-- Barras: la columna completa es el área de hover, la barra es la marca -->
+              <div class="chart-plot chart-barras" [style.gap.px]="barras().length > 60 ? 0 : 2">
+                @for (b of barras(); track b.period; let i = $index) {
+                  <div class="chart-col"
+                       (mouseenter)="hoveredIndex.set(i)"
+                       [attr.aria-label]="b.etiqueta + ': ' + (b.total | currency:'USD':'symbol':'1.2-2')">
+                    <div class="chart-bar"
+                         [class.activa]="hoveredIndex() === i"
+                         [style.height.%]="b.altura"></div>
+                  </div>
+                }
+              </div>
+
+              <!-- Tooltip -->
+              @if (hoveredIndex() !== null && barras()[hoveredIndex()!]; as b) {
+                <div class="chart-tooltip card border-secondary shadow small"
+                     [style.left.%]="posicionTooltip(hoveredIndex()!)">
+                  <div class="text-secondary">{{ b.etiqueta }}</div>
+                  <div class="fw-bold text-light">{{ b.total | currency:'USD':'symbol':'1.2-2' }}</div>
+                  <div class="text-secondary">{{ b.count }} {{ b.count === 1 ? 'venta' : 'ventas' }}</div>
+                </div>
+              }
+
+              <!-- Eje X: etiquetas selectivas -->
+              <div class="chart-x">
+                @for (b of barras(); track b.period) {
+                  <span>{{ b.mostrarEtiqueta ? b.etiqueta : '' }}</span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Ventas por empleado -->
+    <div class="col-lg-4">
+      <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+        <div class="card-header border-secondary">
+          <h6 class="fw-bold mb-0">Ventas por empleado</h6>
+          <span class="small text-secondary">Haz clic en un empleado para filtrar la gráfica</span>
+        </div>
+
+        <div class="list-group list-group-flush overflow-auto empleados-lista" [class.opacity-50]="isLoadingEmpleados()">
+          @for (e of empleados(); track e.employeeId; let pos = $index) {
+            <button type="button"
+                    class="list-group-item list-group-item-action bg-transparent border-secondary py-2"
+                    [class.empleado-activo]="employeeId() === e.employeeId"
+                    (click)="toggleEmpleado(e.employeeId)">
+              <div class="d-flex justify-content-between align-items-baseline gap-2">
+                <span class="text-truncate">
+                  <span class="text-secondary small me-1">{{ pos + 1 }}.</span>
+                  <span class="fw-semibold">{{ e.name }}</span>
+                  @if (!e.available) {
+                    <span class="badge bg-secondary ms-1">Inactivo</span>
+                  }
+                </span>
+                <span class="fw-bold text-nowrap">{{ e.total | currency:'USD':'symbol':'1.2-2' }}</span>
+              </div>
+              <div class="progress my-1" style="height: 6px;" role="progressbar"
+                   [attr.aria-valuenow]="e.percentage" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-bar chart-fill" [style.width.%]="e.percentage"></div>
+              </div>
+              <div class="d-flex justify-content-between small text-secondary">
+                <span>{{ e.count }} {{ e.count === 1 ? 'venta' : 'ventas' }} · prom. {{ e.averageTicket | currency:'USD':'symbol':'1.2-2' }}</span>
+                <span>{{ e.percentage | number:'1.0-1' }}%</span>
+              </div>
+            </button>
+          } @empty {
+            @if (!isLoadingEmpleados()) {
+              <div class="text-center text-secondary small py-5">No hay empleados con ventas en el rango</div>
+            }
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
