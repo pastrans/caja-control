@@ -20,6 +20,9 @@ interface KpiCard {
 }
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const MESES_LARGOS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto',
+  'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const DIAS_SEMANA = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
 const MAX_ETIQUETAS_X = 8;
 
 // Agrupación automática según los días del rango, para no dibujar demasiadas barras:
@@ -113,6 +116,7 @@ export class InicioComponent implements OnInit {
       ...p,
       altura: max > 0 ? (p.total / max) * 100 : 0,
       etiqueta: this.formatearPeriodo(p.period),
+      detalle: this.detallarPeriodo(p.period),
       mostrarEtiqueta: i % salto === 0
     }));
   });
@@ -277,16 +281,65 @@ export class InicioComponent implements OnInit {
     return `${fecha.getFullYear()}-${mm}-${dd}`;
   }
 
-  // 'YYYY-MM-DD' se formatea a mano: new Date('YYYY-MM-DD') es UTC y puede correr un día
+  // Las fechas 'YYYY-MM-DD' se manejan en UTC para que la zona horaria del navegador no corra un día
+
+  // Etiqueta corta del eje X: el primer día del periodo que cae dentro del rango
   formatearPeriodo(period: string): string {
-    const [anio, mes, dia] = period.split('-').map(Number);
-    const nombreMes = MESES[mes - 1];
+    const { inicio } = this.diasDelPeriodo(period);
+
+    if (this.serie()?.groupBy === 'month') {
+      return `${MESES[inicio.getUTCMonth()]} ${String(inicio.getUTCFullYear()).slice(2)}`;
+    }
+    return `${inicio.getUTCDate()} ${MESES[inicio.getUTCMonth()]}`;
+  }
+
+  // Etiqueta completa (tooltip y tabla): los días que realmente cubre la barra
+  detallarPeriodo(period: string): string {
+    const { inicio, fin, completo } = this.diasDelPeriodo(period);
+    const anio = fin.getUTCFullYear();
 
     switch (this.serie()?.groupBy) {
-      case 'month': return `${nombreMes} ${String(anio).slice(2)}`;
-      case 'week': return `Sem. ${dia} ${nombreMes}`;
-      default: return `${dia} ${nombreMes}`;
+      case 'month': {
+        const mes = `${MESES_LARGOS[inicio.getUTCMonth()]} ${anio}`;
+        return completo ? mes : `${mes} (${inicio.getUTCDate()} – ${fin.getUTCDate()})`;
+      }
+      case 'week': {
+        const mismoAnio = inicio.getUTCFullYear() === anio;
+        const mismoMes = mismoAnio && inicio.getUTCMonth() === fin.getUTCMonth();
+        const desde = mismoMes
+          ? `${inicio.getUTCDate()}`
+          : `${inicio.getUTCDate()} ${MESES[inicio.getUTCMonth()]}${mismoAnio ? '' : ` ${inicio.getUTCFullYear()}`}`;
+        return `${desde} – ${fin.getUTCDate()} ${MESES[fin.getUTCMonth()]} ${anio}`;
+      }
+      default:
+        return `${DIAS_SEMANA[inicio.getUTCDay()]} ${inicio.getUTCDate()} ${MESES[inicio.getUTCMonth()]} ${anio}`;
     }
+  }
+
+  // Días que cubre un periodo (día, semana de lunes a domingo o mes), recortados al rango consultado
+  private diasDelPeriodo(period: string): { inicio: Date; fin: Date; completo: boolean } {
+    const aFecha = (iso: string) => {
+      const [a, m, d] = iso.split('-').map(Number);
+      return new Date(Date.UTC(a, m - 1, d));
+    };
+    const inicioPeriodo = aFecha(period);
+    const finPeriodo = new Date(inicioPeriodo);
+
+    switch (this.serie()?.groupBy) {
+      case 'week': finPeriodo.setUTCDate(finPeriodo.getUTCDate() + 6); break;
+      case 'month': finPeriodo.setUTCMonth(finPeriodo.getUTCMonth() + 1, 0); break;
+    }
+
+    const desde = this.serie() ? aFecha(this.serie()!.from) : inicioPeriodo;
+    const hasta = this.serie() ? aFecha(this.serie()!.to) : finPeriodo;
+    const inicio = inicioPeriodo < desde ? desde : inicioPeriodo;
+    const fin = finPeriodo > hasta ? hasta : finPeriodo;
+
+    return {
+      inicio,
+      fin,
+      completo: inicio.getTime() === inicioPeriodo.getTime() && fin.getTime() === finPeriodo.getTime()
+    };
   }
 
   // Mantiene el tooltip dentro de la gráfica en los extremos
