@@ -39,6 +39,11 @@ interface Segmento extends Serie {
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const MAX_ETIQUETAS_X = 8;
 
+// Agrupación automática según los días del rango, para no dibujar demasiadas barras:
+// hasta 15 días por día, hasta ~3 meses por semana y más de eso por mes
+const MAX_DIAS_POR_DIA = 15;
+const MAX_DIAS_POR_SEMANA = 92;
+
 // Paleta categórica para fondo oscuro (validada: separación para daltonismo y contraste >= 3:1).
 // Orden fijo y nunca se recicla: del empleado 9 en adelante se agrupan en "Otros"
 const PALETA = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767'];
@@ -66,7 +71,7 @@ export class InicioComponent implements OnInit {
   // Filtros
   preset = signal<Preset>('mes');
   range = signal<DashboardRange>(this.rangoDePreset('mes'));
-  groupBy = signal<GroupBy>('day');
+  groupBy = signal<GroupBy>(this.agrupacionPara(this.range()));
   employeeIds = signal<number[]>([]); // vacío = todos los empleados
 
   // Datos
@@ -80,15 +85,14 @@ export class InicioComponent implements OnInit {
   private empleadosReq = 0;
   private serieReq = 0;
 
-  // Cada periodo trae la agrupación que mejor se lee para su tamaño (se puede cambiar a mano)
-  readonly presets: { id: Preset; label: string; groupBy?: GroupBy }[] = [
-    { id: '7d', label: 'Últimos 7 días', groupBy: 'day' },
-    { id: '15d', label: 'Últimos 15 días', groupBy: 'day' },
-    { id: 'mes', label: 'Mes en curso', groupBy: 'day' },
-    { id: 'mesPasado', label: 'Mes pasado', groupBy: 'day' },
-    { id: 'trimestre', label: 'Trimestre en curso', groupBy: 'week' },
-    { id: '6m', label: 'Últimos 6 meses', groupBy: 'month' },
-    { id: 'anio', label: 'Año en curso', groupBy: 'month' },
+  readonly presets: { id: Preset; label: string }[] = [
+    { id: '7d', label: 'Últimos 7 días' },
+    { id: '15d', label: 'Últimos 15 días' },
+    { id: 'mes', label: 'Mes en curso' },
+    { id: 'mesPasado', label: 'Mes pasado' },
+    { id: 'trimestre', label: 'Trimestre en curso' },
+    { id: '6m', label: 'Últimos 6 meses' },
+    { id: 'anio', label: 'Año en curso' },
     { id: 'custom', label: 'Personalizado' }
   ];
 
@@ -182,7 +186,7 @@ export class InicioComponent implements OnInit {
     if (preset === 'custom') return;
 
     this.range.set(this.rangoDePreset(preset));
-    this.groupBy.set(this.presets.find(p => p.id === preset)?.groupBy ?? 'day');
+    this.groupBy.set(this.agrupacionPara(this.range()));
     this.cargarDatosDelRango();
   }
 
@@ -195,6 +199,7 @@ export class InicioComponent implements OnInit {
       this.errorMessage.set('La fecha inicial no puede ser posterior a la final.');
       return;
     }
+    this.groupBy.set(this.agrupacionPara(this.range()));
     this.cargarDatosDelRango();
   }
 
@@ -354,6 +359,17 @@ export class InicioComponent implements OnInit {
       default: desde = new Date(anio, mes, 1); // mes en curso
     }
     return { from: this.aISO(desde), to: this.aISO(hasta) };
+  }
+
+  // Los botones Día/Semana/Mes siguen permitiendo cambiarla a mano
+  private agrupacionPara({ from, to }: DashboardRange): GroupBy {
+    const [a1, m1, d1] = from.split('-').map(Number);
+    const [a2, m2, d2] = to.split('-').map(Number);
+    const dias = Math.round((Date.UTC(a2, m2 - 1, d2) - Date.UTC(a1, m1 - 1, d1)) / 86_400_000) + 1;
+
+    if (dias <= MAX_DIAS_POR_DIA) return 'day';
+    if (dias <= MAX_DIAS_POR_SEMANA) return 'week';
+    return 'month';
   }
 
   private aISO(fecha: Date): string {
