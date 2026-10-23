@@ -1,14 +1,18 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { NgbDropdownModule } from '@ng-bootstrap/ng-bootstrap';
 import { DashboardService } from '../../services/dashboard.service';
+import { EmpleadosService } from '../../services/empleados.service';
+import { Empleado } from '../../models/empleado.model';
 import {
   DashboardRange,
   DashboardSummaryDTO,
   EmployeeSalesDTO,
   GroupBy,
   PeriodSummary,
-  SalesOverTimeDTO
+  SalesOverTimeDTO,
+  SalesPointDTO
 } from '../../models/dashboard.model';
 
 type Preset = '7d' | '15d' | 'mes' | 'mesPasado' | 'trimestre' | '6m' | 'anio' | 'custom';
@@ -19,18 +23,37 @@ interface KpiCard {
   data: PeriodSummary;
 }
 
+// Una serie de la gráfica: un empleado, o "Otros" si ya no quedan colores
+interface Serie {
+  clave: string;
+  nombre: string;
+  color: string;
+  orden: number; // posición en la pila, de abajo hacia arriba
+}
+
+interface Segmento extends Serie {
+  total: number;
+  count: number;
+}
+
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const MAX_ETIQUETAS_X = 8;
+
+// Paleta categórica para fondo oscuro (validada: separación para daltonismo y contraste >= 3:1).
+// Orden fijo y nunca se recicla: del empleado 9 en adelante se agrupan en "Otros"
+const PALETA = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767'];
+const OTROS: Serie = { clave: 'otros', nombre: 'Otros', color: '#6c757d', orden: PALETA.length };
 
 @Component({
   selector: 'app-inicio',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NgbDropdownModule],
   templateUrl: './inicio.component.html',
   styleUrl: './inicio.component.css'
 })
 export class InicioComponent implements OnInit {
   private readonly dashboardService = inject(DashboardService);
+  private readonly empleadosService = inject(EmpleadosService);
 
   // Estados de UI
   errorMessage = signal<string | null>(null);
@@ -44,12 +67,14 @@ export class InicioComponent implements OnInit {
   preset = signal<Preset>('mes');
   range = signal<DashboardRange>(this.rangoDePreset('mes'));
   groupBy = signal<GroupBy>('day');
-  employeeId = signal<number | null>(null);
+  employeeIds = signal<number[]>([]); // vacío = todos los empleados
 
   // Datos
   summary = signal<DashboardSummaryDTO | null>(null);
   empleados = signal<EmployeeSalesDTO[]>([]);
   serie = signal<SalesOverTimeDTO | null>(null);
+  // Todos los empleados (activos e inactivos): solo para asignar colores estables
+  todosEmpleados = signal<Empleado[]>([]);
 
   // Evita que una respuesta vieja pise a una más reciente al cambiar filtros rápido
   private empleadosReq = 0;
@@ -84,9 +109,24 @@ export class InicioComponent implements OnInit {
     ];
   });
 
-  empleadoSeleccionado = computed(() =>
-    this.empleados().find(e => e.employeeId === this.employeeId()) ?? null
+  // Color por ID de empleado (no por ranking): no cambia al filtrar ni al cambiar el rango
+  private posiciones = computed(() => {
+    const ids = this.todosEmpleados().length > 0
+      ? this.todosEmpleados().map(e => e.id)
+      : this.empleados().map(e => e.employeeId);
+    return new Map([...ids].sort((a, b) => a - b).map((id, i) => [id, i]));
+  });
+
+  empleadosSeleccionados = computed(() =>
+    this.employeeIds().map(id => ({ id, ...this.serieDe(id), nombre: this.nombreDe(id) }))
   );
+
+  etiquetaFiltroEmpleados = computed(() => {
+    const ids = this.employeeIds();
+    if (ids.length === 0) return 'Todos los empleados';
+    if (ids.length === 1) return this.nombreDe(ids[0]);
+    return `${ids.length} empleados`;
+  });
 
   // Escala "redonda" del eje Y: 4 líneas guía con pasos de 1, 2, 2.5, 5 o 10
   escalaY = computed<number[]>(() => {
@@ -109,13 +149,24 @@ export class InicioComponent implements OnInit {
       ...p,
       altura: max > 0 ? (p.total / max) * 100 : 0,
       etiqueta: this.formatearPeriodo(p.period),
-      mostrarEtiqueta: i % salto === 0
+      mostrarEtiqueta: i % salto === 0,
+      segmentos: this.segmentosDe(p)
     }));
+  });
+
+  // Series presentes en la gráfica, en el orden de la pila (la leyenda solo se muestra con 2 o más)
+  leyenda = computed<Serie[]>(() => {
+    const series = new Map<string, Serie>();
+    for (const b of this.barras()) {
+      for (const s of b.segmentos) series.set(s.clave, s);
+    }
+    return [...series.values()].sort((a, b) => a.orden - b.orden);
   });
 
   ngOnInit(): void {
     this.cargarSummary();
     this.cargarDatosDelRango();
+    this.cargarTodosEmpleados();
   }
 
   refrescar(): void {
@@ -152,10 +203,52 @@ export class InicioComponent implements OnInit {
     this.cargarSerie();
   }
 
-  // Clic en la lista de empleados: filtra la gráfica; clic otra vez lo quita
-  toggleEmpleado(id: number | null): void {
-    this.employeeId.set(this.employeeId() === id ? null : id);
+  // Clic en un empleado (lista o desplegable): lo agrega al filtro; clic otra vez lo quita
+  toggleEmpleado(id: number): void {
+    const ids = this.employeeIds();
+    this.employeeIds.set(ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]);
     this.cargarSerie();
+  }
+
+  limpiarEmpleados(): void {
+    if (this.employeeIds().length === 0) return;
+    this.employeeIds.set([]);
+    this.cargarSerie();
+  }
+
+  estaSeleccionado(id: number): boolean {
+    return this.employeeIds().includes(id);
+  }
+
+  // --- Series y colores ---
+
+  serieDe(id: number): Serie {
+    const posicion = this.posiciones().get(id);
+    if (posicion === undefined || posicion >= PALETA.length) return OTROS;
+    return { clave: String(id), nombre: this.nombreDe(id), color: PALETA[posicion], orden: posicion };
+  }
+
+  private nombreDe(id: number): string {
+    return this.empleados().find(e => e.employeeId === id)?.name
+      ?? this.todosEmpleados().find(e => e.id === id)?.nombre
+      ?? `Empleado ${id}`;
+  }
+
+  // Segmentos de una barra, de abajo hacia arriba en el orden fijo de la paleta
+  private segmentosDe(punto: SalesPointDTO): Segmento[] {
+    const segmentos = new Map<string, Segmento>();
+    for (const venta of punto.byEmployee ?? []) {
+      const serie = this.serieDe(venta.employeeId);
+      const segmento = segmentos.get(serie.clave) ?? { ...serie, total: 0, count: 0 };
+      segmento.total = Math.round((segmento.total + venta.total) * 100) / 100;
+      segmento.count += venta.count;
+      segmentos.set(serie.clave, segmento);
+    }
+    return [...segmentos.values()].sort((a, b) => a.orden - b.orden);
+  }
+
+  totalDeSerie(segmentos: Segmento[], clave: string): number {
+    return segmentos.find(s => s.clave === clave)?.total ?? 0;
   }
 
   // --- Carga de datos ---
@@ -203,7 +296,7 @@ export class InicioComponent implements OnInit {
     this.isLoadingSerie.set(true);
     this.hoveredIndex.set(null);
 
-    this.dashboardService.getSalesOverTime(this.range(), this.groupBy(), this.employeeId()).subscribe({
+    this.dashboardService.getSalesOverTime(this.range(), this.groupBy(), this.employeeIds()).subscribe({
       next: (res) => {
         if (req !== this.serieReq) return;
         this.serie.set(res);
@@ -215,6 +308,14 @@ export class InicioComponent implements OnInit {
         this.serie.set(null);
         this.isLoadingSerie.set(false);
       }
+    });
+  }
+
+  // Si falla, los colores se asignan con los empleados del rango (pueden cambiar entre rangos)
+  private cargarTodosEmpleados(): void {
+    this.empleadosService.getEmpleados(1, 100).subscribe({
+      next: (res) => this.todosEmpleados.set(res.empleados),
+      error: () => this.todosEmpleados.set([])
     });
   }
 

@@ -34,17 +34,24 @@ export interface SalesByEmployeeDTO {
   employees: EmployeeSalesDTO[];
 }
 
+export interface EmployeeSalesPointDTO {
+  employeeId: number;
+  total: number;
+  count: number;
+}
+
 export interface SalesPointDTO {
   period: string; // YYYY-MM-DD (inicio del periodo)
   total: number;
   count: number;
+  byEmployee: EmployeeSalesPointDTO[]; // Solo empleados con ventas en el periodo
 }
 
 export interface SalesOverTimeDTO {
   from: string;
   to: string;
   groupBy: GroupBy;
-  employeeId?: number;
+  employeeIds: number[] | null;
   total: number;
   count: number;
   data: SalesPointDTO[];

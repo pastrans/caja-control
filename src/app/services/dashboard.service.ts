@@ -29,14 +29,15 @@ export class DashboardService {
     return this.http.get<SalesByEmployeeDTO>(`${this.endpoint}/sales-by-employee`, { params });
   }
 
-  getSalesOverTime(range: DashboardRange, groupBy: GroupBy, employeeId?: number | null): Observable<SalesOverTimeDTO> {
+  // Sin employeeIds devuelve las ventas de todos los empleados
+  getSalesOverTime(range: DashboardRange, groupBy: GroupBy, employeeIds: number[] = []): Observable<SalesOverTimeDTO> {
     let params = new HttpParams()
       .set('from', range.from)
       .set('to', range.to)
       .set('groupBy', groupBy);
 
-    if (employeeId) {
-      params = params.set('employeeId', employeeId.toString());
+    if (employeeIds.length > 0) {
+      params = params.set('employeeIds', employeeIds.join(','));
     }
 
     return this.http.get<SalesOverTimeDTO>(`${this.endpoint}/sales-over-time`, { params });

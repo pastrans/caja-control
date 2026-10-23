@@ -1,5 +1,4 @@
-/* Un solo tono para la serie (azul 400 de Bootstrap, validado contra fondo oscuro) */
-:host { --serie: #3d8bfd; --serie-activa: #6ea8fe; }
+/* Los colores de cada empleado vienen de la paleta del componente (PALETA) */
 
 .chart-alto { height: 260px; }
 
@@ -14,8 +13,11 @@
 
 .chart-barras { display: flex; align-items: flex-end; }
 .chart-col { flex: 1; height: 100%; display: flex; align-items: flex-end; min-width: 0; }
-.chart-bar { width: 100%; background: var(--serie); border-radius: 4px 4px 0 0; }
-.chart-bar.activa { background: var(--serie-activa); }
+/* Barra apilada: un segmento por empleado, separados por 2px; solo el de arriba lleva esquinas redondeadas */
+.chart-stack { width: 100%; display: flex; flex-direction: column-reverse; gap: 2px; }
+.chart-seg { flex-basis: 0; min-height: 2px; }
+.chart-seg:last-child { border-radius: 4px 4px 0 0; }
+.chart-stack.activa { filter: brightness(1.2); }
 
 .chart-tooltip {
   position: absolute; top: 0; transform: translateX(-50%);
@@ -28,6 +30,7 @@
   font-size: .7rem; color: var(--bs-secondary-color);
 }
 
-.chart-fill { background: var(--serie); }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; vertical-align: middle; }
+.empleados-menu { max-height: 320px; overflow-y: auto; }
 .empleados-lista { max-height: 340px; }
-.empleado-activo { box-shadow: inset 3px 0 0 var(--serie); background: var(--bs-tertiary-bg) !important; }
+.empleado-activo { box-shadow: inset 3px 0 0 var(--color-empleado); background: var(--bs-tertiary-bg) !important; }

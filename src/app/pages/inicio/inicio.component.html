@@ -79,13 +79,26 @@
                [ngModel]="range().to" (ngModelChange)="cambiarFecha('to', $event)">
       </div>
 
-      <select class="form-select form-select-sm w-auto ms-md-auto" aria-label="Empleado"
-              [ngModel]="employeeId()" (ngModelChange)="toggleEmpleado($event)">
-        <option [ngValue]="null">Todos los empleados</option>
-        @for (e of empleados(); track e.employeeId) {
-          <option [ngValue]="e.employeeId">{{ e.name }}</option>
-        }
-      </select>
+      <div ngbDropdown class="ms-md-auto" autoClose="outside" placement="bottom-end">
+        <button type="button" class="btn btn-sm btn-outline-secondary" ngbDropdownToggle aria-label="Empleados">
+          <i class="bi bi-people me-1"></i>{{ etiquetaFiltroEmpleados() }}
+        </button>
+        <div ngbDropdownMenu class="empleados-menu">
+          <button type="button" class="dropdown-item small" [class.active]="employeeIds().length === 0"
+                  (click)="limpiarEmpleados()">
+            Todos los empleados
+          </button>
+          <div class="dropdown-divider"></div>
+          @for (e of empleados(); track e.employeeId) {
+            <label class="dropdown-item small d-flex align-items-center gap-2 mb-0">
+              <input type="checkbox" class="form-check-input mt-0"
+                     [checked]="estaSeleccionado(e.employeeId)" (change)="toggleEmpleado(e.employeeId)">
+              <span class="swatch" [style.background]="serieDe(e.employeeId).color"></span>
+              <span class="text-truncate">{{ e.name }}</span>
+            </label>
+          }
+        </div>
+      </div>
     </div>
   </div>
 
@@ -97,11 +110,11 @@
           <div>
             <h6 class="fw-bold mb-0">
               Ventas en el tiempo
-              @if (empleadoSeleccionado(); as emp) {
-                <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle ms-1">
-                  {{ emp.name }}
+              @for (emp of empleadosSeleccionados(); track emp.id) {
+                <span class="badge bg-dark border border-secondary text-light fw-normal ms-1">
+                  <span class="swatch me-1" [style.background]="emp.color"></span>{{ emp.nombre }}
                   <button type="button" class="btn-close btn-close-white ms-1 align-middle" style="font-size: .5rem;"
-                          aria-label="Quitar filtro" (click)="toggleEmpleado(null)"></button>
+                          [attr.aria-label]="'Quitar ' + emp.nombre" (click)="toggleEmpleado(emp.id)"></button>
                 </span>
               }
             </h6>
@@ -149,6 +162,13 @@
                 <thead>
                   <tr>
                     <th scope="col">Periodo</th>
+                    @if (leyenda().length > 1) {
+                      @for (s of leyenda(); track s.clave) {
+                        <th scope="col" class="text-end text-nowrap">
+                          <span class="swatch me-1" [style.background]="s.color"></span>{{ s.nombre }}
+                        </th>
+                      }
+                    }
                     <th scope="col" class="text-end">Ventas</th>
                     <th scope="col" class="text-end">Total</th>
                   </tr>
@@ -156,15 +176,29 @@
                 <tbody>
                   @for (b of barras(); track b.period) {
                     <tr>
-                      <td>{{ b.etiqueta }}</td>
+                      <td class="text-nowrap">{{ b.etiqueta }}</td>
+                      @if (leyenda().length > 1) {
+                        @for (s of leyenda(); track s.clave) {
+                          <td class="text-end">{{ totalDeSerie(b.segmentos, s.clave) | currency:'USD':'symbol':'1.2-2' }}</td>
+                        }
+                      }
                       <td class="text-end">{{ b.count }}</td>
-                      <td class="text-end">{{ b.total | currency:'USD':'symbol':'1.2-2' }}</td>
+                      <td class="text-end fw-semibold">{{ b.total | currency:'USD':'symbol':'1.2-2' }}</td>
                     </tr>
                   }
                 </tbody>
               </table>
             </div>
           } @else {
+            @if (leyenda().length > 1) {
+              <div class="d-flex flex-wrap gap-3 small text-secondary mb-2" aria-label="Leyenda">
+                @for (s of leyenda(); track s.clave) {
+                  <span class="d-inline-flex align-items-center gap-1">
+                    <span class="swatch" [style.background]="s.color"></span>{{ s.nombre }}
+                  </span>
+                }
+              </div>
+            }
             <div class="chart" [class.opacity-50]="isLoadingSerie()" (mouseleave)="hoveredIndex.set(null)">
               <!-- Líneas guía y eje Y -->
               <div class="chart-plot">
@@ -181,9 +215,13 @@
                   <div class="chart-col"
                        (mouseenter)="hoveredIndex.set(i)"
                        [attr.aria-label]="b.etiqueta + ': ' + (b.total | currency:'USD':'symbol':'1.2-2')">
-                    <div class="chart-bar"
+                    <div class="chart-stack"
                          [class.activa]="hoveredIndex() === i"
-                         [style.height.%]="b.altura"></div>
+                         [style.height.%]="b.altura">
+                      @for (s of b.segmentos; track s.clave) {
+                        <div class="chart-seg" [style.flex-grow]="s.total" [style.background]="s.color"></div>
+                      }
+                    </div>
                   </div>
                 }
               </div>
@@ -195,6 +233,18 @@
                   <div class="text-secondary">{{ b.etiqueta }}</div>
                   <div class="fw-bold text-light">{{ b.total | currency:'USD':'symbol':'1.2-2' }}</div>
                   <div class="text-secondary">{{ b.count }} {{ b.count === 1 ? 'venta' : 'ventas' }}</div>
+                  @if (leyenda().length > 1 && b.segmentos.length > 0) {
+                    <div class="border-top border-secondary mt-1 pt-1">
+                      <!-- De arriba hacia abajo, igual que la pila -->
+                      @for (s of b.segmentos.slice().reverse(); track s.clave) {
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="swatch" [style.background]="s.color"></span>
+                          <span class="text-secondary">{{ s.nombre }}</span>
+                          <span class="ms-auto ps-2 text-light">{{ s.total | currency:'USD':'symbol':'1.2-2' }}</span>
+                        </div>
+                      }
+                    </div>
+                  }
                 </div>
               }
 
@@ -215,18 +265,21 @@
       <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
         <div class="card-header border-secondary">
           <h6 class="fw-bold mb-0">Ventas por empleado</h6>
-          <span class="small text-secondary">Haz clic en un empleado para filtrar la gráfica</span>
+          <span class="small text-secondary">Haz clic en uno o varios empleados para filtrar la gráfica</span>
         </div>
 
         <div class="list-group list-group-flush overflow-auto empleados-lista" [class.opacity-50]="isLoadingEmpleados()">
           @for (e of empleados(); track e.employeeId; let pos = $index) {
             <button type="button"
                     class="list-group-item list-group-item-action bg-transparent border-secondary py-2"
-                    [class.empleado-activo]="employeeId() === e.employeeId"
+                    [class.empleado-activo]="estaSeleccionado(e.employeeId)"
+                    [style.--color-empleado]="serieDe(e.employeeId).color"
+                    [attr.aria-pressed]="estaSeleccionado(e.employeeId)"
                     (click)="toggleEmpleado(e.employeeId)">
               <div class="d-flex justify-content-between align-items-baseline gap-2">
                 <span class="text-truncate">
                   <span class="text-secondary small me-1">{{ pos + 1 }}.</span>
+                  <span class="swatch me-1" [style.background]="serieDe(e.employeeId).color"></span>
                   <span class="fw-semibold">{{ e.name }}</span>
                   @if (!e.available) {
                     <span class="badge bg-secondary ms-1">Inactivo</span>
@@ -236,7 +289,7 @@
               </div>
               <div class="progress my-1" style="height: 6px;" role="progressbar"
                    [attr.aria-valuenow]="e.percentage" aria-valuemin="0" aria-valuemax="100">
-                <div class="progress-bar chart-fill" [style.width.%]="e.percentage"></div>
+                <div class="progress-bar" [style.background]="serieDe(e.employeeId).color" [style.width.%]="e.percentage"></div>
               </div>
               <div class="d-flex justify-content-between small text-secondary">
                 <span>{{ e.count }} {{ e.count === 1 ? 'venta' : 'ventas' }} · prom. {{ e.averageTicket | currency:'USD':'symbol':'1.2-2' }}</span>
