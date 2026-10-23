@@ -11,7 +11,7 @@ import {
   SalesOverTimeDTO
 } from '../../models/dashboard.model';
 
-type Preset = '7d' | '30d' | 'mes' | 'anio' | 'custom';
+type Preset = '7d' | '15d' | 'mes' | 'mesPasado' | 'trimestre' | '6m' | 'anio' | 'custom';
 
 interface KpiCard {
   label: string;
@@ -55,11 +55,16 @@ export class InicioComponent implements OnInit {
   private empleadosReq = 0;
   private serieReq = 0;
 
-  readonly presets: { id: Preset; label: string }[] = [
-    { id: '7d', label: '7 días' },
-    { id: '30d', label: '30 días' },
-    { id: 'mes', label: 'Este mes' },
-    { id: 'anio', label: 'Este año' }
+  // Cada periodo trae la agrupación que mejor se lee para su tamaño (se puede cambiar a mano)
+  readonly presets: { id: Preset; label: string; groupBy?: GroupBy }[] = [
+    { id: '7d', label: 'Últimos 7 días', groupBy: 'day' },
+    { id: '15d', label: 'Últimos 15 días', groupBy: 'day' },
+    { id: 'mes', label: 'Mes en curso', groupBy: 'day' },
+    { id: 'mesPasado', label: 'Mes pasado', groupBy: 'day' },
+    { id: 'trimestre', label: 'Trimestre en curso', groupBy: 'week' },
+    { id: '6m', label: 'Últimos 6 meses', groupBy: 'month' },
+    { id: 'anio', label: 'Año en curso', groupBy: 'month' },
+    { id: 'custom', label: 'Personalizado' }
   ];
 
   readonly agrupaciones: { id: GroupBy; label: string }[] = [
@@ -122,8 +127,11 @@ export class InicioComponent implements OnInit {
 
   seleccionarPreset(preset: Preset): void {
     this.preset.set(preset);
+    // "Personalizado" conserva el rango actual: se ajusta con los campos de fecha
+    if (preset === 'custom') return;
+
     this.range.set(this.rangoDePreset(preset));
-    this.groupBy.set(preset === 'anio' ? 'month' : 'day');
+    this.groupBy.set(this.presets.find(p => p.id === preset)?.groupBy ?? 'day');
     this.cargarDatosDelRango();
   }
 
@@ -217,17 +225,34 @@ export class InicioComponent implements OnInit {
 
   // --- Utilidades de fechas ---
 
+  // Los rangos "Últimos N" terminan hoy e incluyen el día de hoy;
+  // mes, trimestre y año son de calendario (desde su primer día hasta hoy)
   private rangoDePreset(preset: Preset): DashboardRange {
     const hoy = new Date();
-    const desde = new Date(hoy);
+    const anio = hoy.getFullYear();
+    const mes = hoy.getMonth();
+    const dia = hoy.getDate();
+    let desde: Date;
+    let hasta = hoy;
 
     switch (preset) {
-      case '7d': desde.setDate(hoy.getDate() - 6); break;
-      case '30d': desde.setDate(hoy.getDate() - 29); break;
-      case 'anio': desde.setMonth(0, 1); break;
-      default: desde.setDate(1);
+      case '7d': desde = new Date(anio, mes, dia - 6); break;
+      case '15d': desde = new Date(anio, mes, dia - 14); break;
+      case 'mesPasado':
+        desde = new Date(anio, mes - 1, 1);
+        hasta = new Date(anio, mes, 0); // día 0 = último día del mes anterior
+        break;
+      case 'trimestre': desde = new Date(anio, Math.floor(mes / 3) * 3, 1); break;
+      case '6m': {
+        // Mismo día de hace 6 meses; si ese mes es más corto, su último día (ej. 31 ago -> 28 feb)
+        const ultimoDia = new Date(anio, mes - 5, 0).getDate();
+        desde = new Date(anio, mes - 6, Math.min(dia, ultimoDia));
+        break;
+      }
+      case 'anio': desde = new Date(anio, 0, 1); break;
+      default: desde = new Date(anio, mes, 1); // mes en curso
     }
-    return { from: this.aISO(desde), to: this.aISO(hoy) };
+    return { from: this.aISO(desde), to: this.aISO(hasta) };
   }
 
   private aISO(fecha: Date): string {

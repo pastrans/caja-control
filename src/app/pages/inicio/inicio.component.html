@@ -62,19 +62,12 @@
   <!-- Filtros del rango (una sola fila sobre las gráficas) -->
   <div class="card border-secondary shadow-sm mb-3 bg-dark-subtle">
     <div class="card-body py-2 d-flex flex-wrap align-items-center gap-2">
-      <div class="btn-group btn-group-sm" role="group" aria-label="Rango rápido">
+      <select class="form-select form-select-sm w-auto" aria-label="Periodo"
+              [ngModel]="preset()" (ngModelChange)="seleccionarPreset($event)">
         @for (p of presets; track p.id) {
-          <button
-            type="button"
-            class="btn"
-            [class.btn-light]="preset() === p.id"
-            [class.btn-outline-secondary]="preset() !== p.id"
-            (click)="seleccionarPreset(p.id)"
-          >
-            {{ p.label }}
-          </button>
+          <option [ngValue]="p.id">{{ p.label }}</option>
         }
-      </div>
+      </select>
 
       <div class="d-flex align-items-center gap-1">
         <input type="date" class="form-control form-control-sm" aria-label="Desde"
