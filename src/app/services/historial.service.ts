@@ -26,4 +26,11 @@ export class HistorialService {
       }))
     );
   }
+
+  // El listado no incluye transacciones ni movimientos: el detalle se pide aparte
+  getCajaById(id: number): Observable<CajaRecord> {
+    return this.http.get<CashRegisterDTO>(`${this.endpoint}/${id}`).pipe(
+      map(dto => CajaMapper.fromDTO(dto))
+    );
+  }
 }

@@ -27,6 +27,8 @@ export class HistorialComponent implements OnInit {
   // Modales
   registroSeleccionado = signal<CajaRecord | null>(null);
   transaccionExpandida = signal<TransactionRecord | null>(null);
+  isLoadingDetalle = signal<boolean>(false);
+  errorDetalle = signal<string | null>(null);
 
   ngOnInit(): void {
     this.cargarHistorial();
@@ -67,7 +69,23 @@ export class HistorialComponent implements OnInit {
   abrirModal(modal: TemplateRef<unknown>, registro: CajaRecord): void {
     this.registroSeleccionado.set(registro);
     this.transaccionExpandida.set(null);
+    this.errorDetalle.set(null);
+    this.isLoadingDetalle.set(true);
     this.modalService.open(modal, { size: 'lg', centered: true, scrollable: true });
+
+    // El listado solo trae el resumen; las transacciones y movimientos se cargan al abrir el modal
+    this.historialService.getCajaById(registro.id).subscribe({
+      next: (detalle) => {
+        if (this.registroSeleccionado()?.id === registro.id) {
+          this.registroSeleccionado.set(detalle);
+        }
+        this.isLoadingDetalle.set(false);
+      },
+      error: (err) => {
+        this.errorDetalle.set(err.error?.error || 'Error al cargar el detalle de la caja.');
+        this.isLoadingDetalle.set(false);
+      }
+    });
   }
 
   toggleTransaccion(transaccion: TransactionRecord): void {

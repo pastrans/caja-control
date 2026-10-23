@@ -87,11 +87,11 @@
                 </td>
                 <td>{{ registro.opening.cash | currency:'USD':'symbol':'1.2-2' }}</td>
                 <td >
-                  {{ calcularTotalTransacciones(registro.transactions) | currency:'USD':'symbol':'1.2-2' }}
+                  {{ (registro.summary?.totalTransactions ?? 0) | currency:'USD':'symbol':'1.2-2' }}
                 </td>
                 <td>
-                  <span class="text-success"><i class="bi bi-arrow-up-short"></i>{{ calcularTotal(registro.cashInOut, 'Entrada') | currency:'USD':'symbol':'1.2-2' }}</span> /
-                  <span class="text-danger"><i class="bi bi-arrow-down-short"></i>{{ calcularTotal(registro.cashInOut, 'Salida') | currency:'USD':'symbol':'1.2-2' }}</span>
+                  <span class="text-success"><i class="bi bi-arrow-up-short"></i>{{ (registro.summary?.totalCashIn ?? 0) | currency:'USD':'symbol':'1.2-2' }}</span> /
+                  <span class="text-danger"><i class="bi bi-arrow-down-short"></i>{{ (registro.summary?.totalCashOut ?? 0) | currency:'USD':'symbol':'1.2-2' }}</span>
                 </td>
                 <td>{{ (registro.closing?.cashProvided || 0) | currency:'USD':'symbol':'1.2-2' }}</td>
                 <td>
@@ -159,7 +159,14 @@
     <button type="button" class="btn-close btn-close-white" (click)="modal.dismiss()"></button>
   </div>
   <div class="modal-body bg-dark text-light">
-    @if (registroSeleccionado()) {
+    @if (isLoadingDetalle()) {
+      <div class="text-center p-4">
+        <div class="spinner-border text-info" role="status"></div>
+        <p class="text-secondary small mt-2 mb-0">Cargando detalle...</p>
+      </div>
+    } @else if (errorDetalle()) {
+      <div class="alert alert-danger mb-0">{{ errorDetalle() }}</div>
+    } @else if (registroSeleccionado()) {
       <div class="mb-3 p-3 bg-dark-subtle border border-secondary rounded">
         <p class="mb-1 small text-secondary">Apertura de Caja</p>
         <p class="mb-0 fw-semibold">{{ registroSeleccionado()?.opening?.date | date:'dd/MM/yyyy h:mm a' }}</p>
@@ -240,7 +247,14 @@
     <button type="button" class="btn-close btn-close-white" (click)="modal.dismiss()"></button>
   </div>
   <div class="modal-body bg-dark text-light">
-    @if (registroSeleccionado()) {
+    @if (isLoadingDetalle()) {
+      <div class="text-center p-4">
+        <div class="spinner-border text-info" role="status"></div>
+        <p class="text-secondary small mt-2 mb-0">Cargando detalle...</p>
+      </div>
+    } @else if (errorDetalle()) {
+      <div class="alert alert-danger mb-0">{{ errorDetalle() }}</div>
+    } @else if (registroSeleccionado()) {
       <div class="table-responsive">
         <table class="table table-sm align-middle table-dark border-secondary">
           <thead class="table-secondary">

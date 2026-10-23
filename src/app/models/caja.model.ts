@@ -48,13 +48,25 @@ export interface ClosingDTO {
   denominations: DenominationDTO[];
 }
 
+// Resumen que envía el listado de cajas (GET /cash-registers) en lugar del detalle
+export interface CashRegisterSummaryDTO {
+  transactionsCount: number;
+  totalTransactions: number;
+  cashInOutCount: number;
+  totalCashIn: number;
+  totalCashOut: number;
+}
+
 export interface CashRegisterDTO {
   id: number;
   status: 'OPEN' | 'CLOSED';
   opening: OpeningDTO;
   closing?: ClosingDTO;
-  transactions: TransactionDTO[];
-  cashInOut: CashInOutDTO[];
+  // Solo vienen en el detalle (GET /cash-registers/:id y /active)
+  transactions?: TransactionDTO[];
+  cashInOut?: CashInOutDTO[];
+  // Solo viene en el listado
+  summary?: CashRegisterSummaryDTO;
 }
 
 // 2. Modelos del Frontend (Tus modelos adaptados)
@@ -99,6 +111,14 @@ export interface TransactionRecord {
   denominations: DenominationRecord[];
 }
 
+export interface CajaSummary {
+  transactionsCount: number;
+  totalTransactions: number;
+  cashInOutCount: number;
+  totalCashIn: number;
+  totalCashOut: number;
+}
+
 export interface CajaRecord {
   id: number;
   status: 'OPEN' | 'CLOSED';
@@ -106,6 +126,7 @@ export interface CajaRecord {
   closing?: Closing;
   transactions: TransactionRecord[];
   cashInOut: CashInOutRecord[];
+  summary?: CajaSummary;
 }
 
 // 3. Adapter / Mapper
@@ -150,7 +171,8 @@ export class CajaMapper {
         reason: c.reason,
         date: new Date(c.date),
         note: c.note || ''
-      }))
+      })),
+      summary: dto.summary
     };
   }
 }
