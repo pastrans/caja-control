@@ -176,7 +176,7 @@
                 <tbody>
                   @for (b of barras(); track b.period) {
                     <tr>
-                      <td class="text-nowrap">{{ b.etiqueta }}</td>
+                      <td class="text-nowrap">{{ b.detalle }}</td>
                       @if (leyenda().length > 1) {
                         @for (s of leyenda(); track s.clave) {
                           <td class="text-end">{{ totalDeSerie(b.segmentos, s.clave) | currency:'USD':'symbol':'1.2-2' }}</td>
@@ -214,7 +214,7 @@
                 @for (b of barras(); track b.period; let i = $index) {
                   <div class="chart-col"
                        (mouseenter)="hoveredIndex.set(i)"
-                       [attr.aria-label]="b.etiqueta + ': ' + (b.total | currency:'USD':'symbol':'1.2-2')">
+                       [attr.aria-label]="b.detalle + ': ' + (b.total | currency:'USD':'symbol':'1.2-2')">
                     <div class="chart-stack"
                          [class.activa]="hoveredIndex() === i"
                          [style.height.%]="b.altura">
@@ -230,7 +230,7 @@
               @if (hoveredIndex() !== null && barras()[hoveredIndex()!]; as b) {
                 <div class="chart-tooltip card border-secondary shadow small"
                      [style.left.%]="posicionTooltip(hoveredIndex()!)">
-                  <div class="text-secondary">{{ b.etiqueta }}</div>
+                  <div class="text-secondary">{{ b.detalle }}</div>
                   <div class="fw-bold text-light">{{ b.total | currency:'USD':'symbol':'1.2-2' }}</div>
                   <div class="text-secondary">{{ b.count }} {{ b.count === 1 ? 'venta' : 'ventas' }}</div>
                   @if (leyenda().length > 1 && b.segmentos.length > 0) {
