@@ -9,7 +9,7 @@ Backlog generado a partir del análisis del frontend (22/10/2026). Cada historia
 |---|---|---|---|
 | US-01 | No abrir una caja nueva por un error de conexión | 🔴 | Hecha |
 | US-02 | Cerrar sesión automáticamente al expirar el token | 🔴 | Hecha |
-| US-03 | Poder cerrar una caja con $0 en efectivo | 🔴 | Pendiente |
+| US-03 | Poder cerrar una caja con $0 en efectivo | 🔴 | Hecha |
 | US-04 | Cálculos de dinero exactos y validados por el servidor | 🔴 | Pendiente |
 | US-05 | Configuración de entornos clara y sin archivos generados en git | 🟡 | Pendiente |
 | US-06 | Carga inicial más rápida (lazy loading) | 🟡 | Pendiente |

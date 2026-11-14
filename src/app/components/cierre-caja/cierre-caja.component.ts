@@ -46,7 +46,7 @@ export class CierreCajaComponent implements OnInit {
     }
 
     this.registerForm = this.fb.group({
-      cashCount: [this.expectedCash.toFixed(2), [ Validators.required, Validators.min(0.01), Validators.pattern(AppValidators.amountFormat) ] ],
+      cashCount: [this.expectedCash.toFixed(2), [ Validators.required, Validators.min(0), Validators.pattern(AppValidators.amountFormat) ] ],
       closingNote: ['', [Validators.maxLength(250)]],
       denominations: DenominationsUtils.build(this.fb)
     });
