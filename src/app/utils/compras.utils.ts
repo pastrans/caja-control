@@ -29,11 +29,14 @@ export const ADVERTENCIAS: Record<string, string> = {
   MH_OBSERVATIONS: 'Hacienda lo recibió con observaciones (el documento es válido)',
   TOTALS_MISMATCH: 'Los totales del documento no cuadran (error del proveedor; el documento es válido)',
   PENDING_LINK: 'Nota de crédito pendiente de vincular: falta importar su crédito fiscal',
-  HAS_CREDIT_NOTES: 'Este crédito fiscal tiene notas de crédito activas que siguen contando en los reportes'
+  HAS_CREDIT_NOTES: 'Este crédito fiscal tiene notas de crédito activas que siguen contando en los reportes',
+  // Solo en la importación: el análisis de precios verá estos productos como nuevos
+  PRODUCT_FORMAT_CHANGED: 'El proveedor cambió el formato de sus productos: algunas líneas no traen el código de siempre',
+  PRODUCT_UNIT_CHANGED: 'Un producto se facturó en una unidad distinta de la habitual (por ejemplo, por bolsa en vez de por libra)'
 };
 
 // Códigos cuyo message original sirve como detalle técnico (qué campo falta o qué observó Hacienda)
-export const CODIGOS_CON_DETALLE = new Set(['INVALID_STRUCTURE', 'MH_OBSERVATIONS', 'TOTALS_MISMATCH']);
+export const CODIGOS_CON_DETALLE = new Set(['INVALID_STRUCTURE', 'MH_OBSERVATIONS', 'TOTALS_MISMATCH', 'PRODUCT_FORMAT_CHANGED', 'PRODUCT_UNIT_CHANGED']);
 
 export const MESES_LARGOS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto',
   'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
