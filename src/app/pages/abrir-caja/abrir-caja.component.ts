@@ -29,9 +29,17 @@ export class AbrirCajaComponent implements OnInit {
   isLoading = signal<boolean>(true);
   isSubmitting = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
+  loadError = signal<string | null>(null); // Falló la consulta de la caja activa
 
   ngOnInit() {
-    // Verificar si ya existe una caja activa
+    this.verificarCajaActiva();
+  }
+
+  // El formulario solo se habilita cuando la API confirma que no hay caja abierta
+  verificarCajaActiva() {
+    this.isLoading.set(true);
+    this.loadError.set(null);
+
     this.cajaService.getActiveCaja().subscribe({
       next: (cajaActiva) => {
         if (cajaActiva) {
@@ -41,8 +49,8 @@ export class AbrirCajaComponent implements OnInit {
           this.isLoading.set(false);
         }
       },
-      error: () => {
-        this.initForm();
+      error: (err) => {
+        this.loadError.set(err.error?.error || 'No se pudo comprobar si ya hay una caja abierta. Revisa la conexión e intenta de nuevo.');
         this.isLoading.set(false);
       }
     });
@@ -138,7 +146,7 @@ export class AbrirCajaComponent implements OnInit {
         this.router.navigate(['/caja']);
       },
       error: (err) => {
-        this.errorMessage.set(err.error?.message || 'Ocurrió un error al intentar abrir la caja.');
+        this.errorMessage.set(err.error?.error || err.error?.message || 'Ocurrió un error al intentar abrir la caja.');
         this.isSubmitting.set(false);
       }
     });

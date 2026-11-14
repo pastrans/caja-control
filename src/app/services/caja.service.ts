@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, map, catchError, of } from 'rxjs';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Observable, map, catchError, of, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { CajaRecord, CashRegisterDTO, CajaMapper, TransactionRecord, CashInOutRecord } from '../models/caja.model';
 
@@ -45,10 +45,12 @@ export class CajaService {
   private readonly http = inject(HttpClient);
   private readonly endpoint = `${environment.apiUrl}/cash-registers`;
 
+  // null solo cuando no hay caja abierta (200 con cuerpo vacío o 404). Cualquier otro error se relanza:
+  // tratarlo como "sin caja" mandaría a abrir una segunda caja por un fallo de red
   getActiveCaja(): Observable<CajaRecord | null> {
-    return this.http.get<CashRegisterDTO>(`${this.endpoint}/active`).pipe(
+    return this.http.get<CashRegisterDTO | null>(`${this.endpoint}/active`).pipe(
       map(dto => dto ? CajaMapper.fromDTO(dto) : null),
-      catchError(() => of(null))
+      catchError((err: HttpErrorResponse) => err.status === 404 ? of(null) : throwError(() => err))
     );
   }
 
