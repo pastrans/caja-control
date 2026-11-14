@@ -1,0 +1,39 @@
+@if (sinDatos()) {
+  <div class="d-flex align-items-center justify-content-center text-secondary small chart-alto">
+    Sin compras en este año
+  </div>
+} @else {
+  <div class="chart" (mouseleave)="hoveredIndex.set(null)">
+    <div class="chart-plot">
+      @for (v of escalaY(); track $index) {
+        <div class="chart-grid" [style.bottom.%]="(v / maxY()) * 100">
+          <span>{{ v | currency:'USD':'symbol':'1.0-0' }}</span>
+        </div>
+      }
+    </div>
+
+    <div class="chart-plot chart-barras">
+      @for (b of barras(); track b.mes; let i = $index) {
+        <div class="chart-col"
+             (mouseenter)="hoveredIndex.set(i)"
+             [attr.aria-label]="b.detalle + ': ' + (b.valor | currency:'USD':'symbol':'1.2-2')">
+          <div class="chart-bar" [class.activa]="hoveredIndex() === i" [style.height.%]="b.altura"></div>
+        </div>
+      }
+    </div>
+
+    @if (hoveredIndex() !== null && barras()[hoveredIndex()!]; as b) {
+      <div class="chart-tooltip card border-secondary shadow small" [style.left.%]="posicionTooltip(hoveredIndex()!)">
+        <div class="text-secondary">{{ b.detalle }}</div>
+        <div class="fw-bold text-light">{{ b.valor | currency:'USD':'symbol':'1.2-2' }}</div>
+        <div class="text-secondary">{{ b.documentos }} {{ b.documentos === 1 ? 'documento' : 'documentos' }}</div>
+      </div>
+    }
+
+    <div class="chart-x">
+      @for (b of barras(); track b.mes) {
+        <span>{{ b.etiqueta }}</span>
+      }
+    </div>
+  </div>
+}

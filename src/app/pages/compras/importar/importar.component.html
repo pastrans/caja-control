@@ -1,0 +1,304 @@
+<div class="container-fluid mt-4" data-bs-theme="dark">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h2 class="fw-bold mb-1">Importar DTE</h2>
+      <p class="text-secondary small mb-0">Sube los JSON de créditos fiscales y notas de crédito de tus proveedores</p>
+    </div>
+    <a class="btn btn-outline-light" routerLink="/compras/documentos">
+      <i class="bi bi-files"></i> Ver documentos
+    </a>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="alert alert-danger alert-dismissible fade show small" role="alert">
+      <i class="bi bi-exclamation-octagon me-1"></i> {{ errorMessage() }}
+      <button type="button" class="btn-close" (click)="errorMessage.set(null)" aria-label="Close"></button>
+    </div>
+  }
+
+  @if ((isUploading() || hayResultados()) && resumen(); as res) {
+    <!-- Contadores acumulados (se actualizan lote a lote) -->
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-lg">
+        <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-secondary small fw-semibold text-uppercase mb-2"><i class="bi bi-inbox me-1"></i> Procesados</div>
+            <div class="fs-3 fw-bold text-light">{{ res.received | number }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-lg">
+        <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-secondary small fw-semibold text-uppercase mb-2"><i class="bi bi-check-circle me-1"></i> Importados</div>
+            <div class="fs-3 fw-bold text-success">{{ res.imported | number }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-lg">
+        <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-secondary small fw-semibold text-uppercase mb-2"><i class="bi bi-x-circle me-1"></i> Rechazados</div>
+            <div class="fs-3 fw-bold" [class.text-danger]="res.rejected > 0" [class.text-light]="res.rejected === 0">
+              {{ res.rejected | number }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-lg">
+        <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-secondary small fw-semibold text-uppercase mb-2"><i class="bi bi-exclamation-triangle me-1"></i> Con advertencias</div>
+            <div class="fs-3 fw-bold" [class.text-warning]="res.withWarnings > 0" [class.text-light]="res.withWarnings === 0">
+              {{ res.withWarnings | number }}
+            </div>
+          </div>
+        </div>
+      </div>
+      @if (res.noEnviados > 0) {
+        <div class="col-6 col-lg">
+          <div class="card border-danger bg-dark-subtle shadow-sm h-100">
+            <div class="card-body">
+              <div class="text-secondary small fw-semibold text-uppercase mb-2"><i class="bi bi-cloud-slash me-1"></i> No enviados</div>
+              <div class="fs-3 fw-bold text-danger">{{ res.noEnviados | number }}</div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  @if (isUploading()) {
+    <!-- Progreso del envío por lotes -->
+    <div class="card shadow-sm border-secondary bg-dark-subtle">
+      <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+          <div>
+            <div class="fw-semibold">
+              Lote {{ loteActual() }} de {{ totalLotes() }}
+              <span class="text-secondary fw-normal">· {{ archivosEnviados() | number }} / {{ totalArchivosEnvio() | number }} archivos</span>
+            </div>
+            <div class="small text-secondary">
+              @if (detenerSolicitado()) {
+                Deteniendo: se termina el lote en curso y no se envían los siguientes...
+              } @else if (progresoLote() < 100) {
+                Subiendo lote ({{ progresoLote() }}%)...
+              } @else {
+                Procesando lote en el servidor...
+              }
+            </div>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-danger" [disabled]="detenerSolicitado()" (click)="detener()">
+            <i class="bi bi-stop-circle"></i> Detener
+          </button>
+        </div>
+        <div class="progress" style="height: 10px;" role="progressbar" [attr.aria-valuenow]="progresoGeneral()" aria-valuemin="0" aria-valuemax="100">
+          <div class="progress-bar progress-bar-striped progress-bar-animated" [style.width.%]="progresoGeneral()"></div>
+        </div>
+        <div class="small text-secondary mt-2">
+          <i class="bi bi-info-circle me-1"></i>
+          Puedes dejar la página trabajando. Si sales, los lotes que faltan no se enviarán; lo ya importado queda guardado.
+        </div>
+      </div>
+    </div>
+  } @else if (hayResultados()) {
+    <!-- Resultado de la importación -->
+    <div class="card shadow-sm border-secondary bg-dark-subtle">
+      <div class="card-header border-secondary d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div class="btn-group btn-group-sm flex-wrap" role="group" aria-label="Filtrar resultados">
+          <button type="button" class="btn" [class.btn-light]="filtro() === 'todos'" [class.btn-outline-secondary]="filtro() !== 'todos'"
+                  (click)="cambiarFiltro('todos')">Todos ({{ resumen().received | number }})</button>
+          <button type="button" class="btn" [class.btn-light]="filtro() === 'rechazados'" [class.btn-outline-secondary]="filtro() !== 'rechazados'"
+                  (click)="cambiarFiltro('rechazados')">Rechazados ({{ resumen().rejected | number }})</button>
+          <button type="button" class="btn" [class.btn-light]="filtro() === 'advertencias'" [class.btn-outline-secondary]="filtro() !== 'advertencias'"
+                  (click)="cambiarFiltro('advertencias')">Con advertencias ({{ resumen().withWarnings | number }})</button>
+          @if (resumen().noEnviados > 0) {
+            <button type="button" class="btn" [class.btn-light]="filtro() === 'noEnviados'" [class.btn-outline-secondary]="filtro() !== 'noEnviados'"
+                    (click)="cambiarFiltro('noEnviados')">No enviados ({{ resumen().noEnviados | number }})</button>
+          }
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          @if (resumen().noEnviados > 0) {
+            <button type="button" class="btn btn-sm btn-warning" (click)="reintentarNoEnviados()">
+              <i class="bi bi-arrow-repeat"></i> Reintentar no enviados
+            </button>
+          }
+          <button type="button" class="btn btn-sm btn-outline-light" (click)="nuevaImportacion()">
+            <i class="bi bi-upload"></i> Importar más
+          </button>
+          <a class="btn btn-sm btn-primary" routerLink="/compras/documentos">
+            <i class="bi bi-files"></i> Ver documentos importados
+          </a>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 table-dark small">
+          <thead>
+            <tr>
+              <th scope="col">Archivo</th>
+              <th scope="col">Estado</th>
+              <th scope="col">Detalle</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of paginaVisible(); track $index) {
+              <tr>
+                <td class="text-break" style="max-width: 280px;">{{ r.file }}</td>
+                <td class="text-nowrap">
+                  @if (esImportado(r)) {
+                    <span class="badge bg-success text-dark"><i class="bi bi-check-lg"></i> Importado</span>
+                  } @else if (esRechazado(r)) {
+                    <span class="badge bg-danger"><i class="bi bi-x-lg"></i> Rechazado</span>
+                  } @else {
+                    <span class="badge border border-danger text-danger"><i class="bi bi-cloud-slash"></i> No enviado</span>
+                  }
+                </td>
+                <td>
+                  @if (esImportado(r)) {
+                    <a [routerLink]="['/compras/documentos', r.documentId]" class="link-info">{{ r.type | tipoDocumento }}</a>
+                    @if (r.linkedCreditNotes > 0) {
+                      <span class="text-secondary ms-2">
+                        <i class="bi bi-link-45deg"></i>
+                        Se {{ r.linkedCreditNotes === 1 ? 'vinculó 1 nota' : 'vincularon ' + r.linkedCreditNotes + ' notas' }} de crédito
+                      </span>
+                    }
+                    @for (w of r.warnings; track w.code) {
+                      <div class="text-warning mt-1">
+                        <i class="bi bi-exclamation-triangle me-1"></i>{{ w.code | advertencia }}
+                        @if (codigosConDetalle.has(w.code)) {
+                          <i class="bi bi-info-circle ms-1" style="cursor: help;" [ngbTooltip]="w.message" container="body"></i>
+                        }
+                      </div>
+                    }
+                  } @else if (esRechazado(r)) {
+                    <span class="text-danger-emphasis">{{ r.reason | motivoRechazo }}</span>
+                    @if (codigosConDetalle.has(r.reason)) {
+                      <i class="bi bi-info-circle ms-1 text-secondary" style="cursor: help;" [ngbTooltip]="r.message" container="body"></i>
+                    }
+                  } @else {
+                    <span class="text-secondary">{{ r.message }}</span>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="3" class="text-center text-secondary py-4">No hay archivos en este filtro</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (resultadosFiltrados().length > tamanoPagina) {
+        <div class="card-footer bg-dark border-secondary d-flex justify-content-between align-items-center py-3">
+          <span class="small text-secondary">
+            {{ resultadosFiltrados().length | number }} archivos
+          </span>
+          <ngb-pagination
+            [collectionSize]="resultadosFiltrados().length"
+            [page]="paginaResultados()"
+            [pageSize]="tamanoPagina"
+            [maxSize]="5"
+            [rotate]="true"
+            [boundaryLinks]="true"
+            (pageChange)="paginaResultados.set($event)"
+            size="sm"
+            class="mb-0"
+          ></ngb-pagination>
+        </div>
+      }
+    </div>
+  } @else {
+    <!-- Selección de archivos -->
+    <div class="card shadow-sm border-secondary bg-dark-subtle mb-3">
+      <div class="card-body">
+        <div class="zona-carga d-flex flex-column align-items-center justify-content-center text-center rounded p-5"
+             [class.arrastrando]="arrastrando()"
+             (dragover)="onDragOver($event)"
+             (dragleave)="onDragLeave($event)"
+             (drop)="onDrop($event)">
+          @if (leyendoCarpeta()) {
+            <div class="spinner-border text-primary mb-2" role="status"></div>
+            <span class="fw-semibold">Leyendo carpeta...</span>
+          } @else {
+            <i class="bi bi-cloud-arrow-up display-5 text-secondary mb-2"></i>
+            <span class="fw-semibold">Arrastra aquí los archivos .json o una carpeta completa</span>
+            <span class="small text-secondary mb-3">
+              Los archivos que no son .json (como los PDF) se ignoran. Se envían solos en lotes de {{ tamanoLote }}.
+            </span>
+            <div class="d-flex flex-wrap justify-content-center gap-2">
+              <label class="btn btn-sm btn-outline-light mb-0">
+                <i class="bi bi-folder2-open"></i> Seleccionar carpeta
+                <input type="file" class="d-none" webkitdirectory multiple (change)="onFileInput($event)">
+              </label>
+              <label class="btn btn-sm btn-outline-secondary mb-0">
+                <i class="bi bi-files"></i> Seleccionar archivos
+                <input type="file" class="d-none" accept=".json,application/json" multiple (change)="onFileInput($event)">
+              </label>
+            </div>
+          }
+        </div>
+
+        @if (ignorados() > 0) {
+          <div class="small text-secondary mt-3">
+            <i class="bi bi-info-circle me-1"></i>Se ignoraron {{ ignorados() | number }} archivo(s) que no son .json.
+          </div>
+        }
+
+        @if (descartados().length > 0) {
+          <div class="alert alert-warning small mt-3 mb-0">
+            <div class="fw-semibold mb-1"><i class="bi bi-exclamation-triangle me-1"></i>No se agregaron {{ descartados().length | number }} archivo(s):</div>
+            <ul class="mb-0 ps-3 overflow-auto" style="max-height: 160px;">
+              @for (d of descartados(); track $index) {
+                <li class="text-break">{{ d }}</li>
+              }
+            </ul>
+          </div>
+        }
+      </div>
+    </div>
+
+    @if (archivos().length > 0) {
+      <div class="card shadow-sm border-secondary bg-dark-subtle">
+        <div class="card-header border-secondary d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <span class="small">
+            <strong>{{ archivos().length | number }}</strong> {{ archivos().length === 1 ? 'archivo' : 'archivos' }}
+            <span class="text-secondary">
+              · {{ formatearTamano(tamanoTotal()) }}
+              · {{ lotesSeleccion() }} {{ lotesSeleccion() === 1 ? 'lote' : 'lotes' }}
+            </span>
+          </span>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="limpiarSeleccion()">
+              Limpiar
+            </button>
+            <button type="button" class="btn btn-sm btn-primary" (click)="importar()">
+              <i class="bi bi-upload"></i> Importar
+            </button>
+          </div>
+        </div>
+
+        <ul class="list-group list-group-flush overflow-auto" style="max-height: 360px;">
+          @for (f of listaVisible(); track f) {
+            <li class="list-group-item bg-transparent border-secondary d-flex justify-content-between align-items-center small py-2">
+              <span class="text-truncate"><i class="bi bi-filetype-json text-secondary me-2"></i>{{ f.name }}</span>
+              <span class="d-flex align-items-center gap-3 text-nowrap">
+                <span class="text-secondary">{{ formatearTamano(f.size) }}</span>
+                <button type="button" class="btn btn-sm btn-link text-danger p-0"
+                        [attr.aria-label]="'Quitar ' + f.name" (click)="quitarArchivo(f)">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </span>
+            </li>
+          }
+          @if (archivos().length > maxArchivosLista) {
+            <li class="list-group-item bg-transparent border-secondary text-center text-secondary small py-2">
+              y {{ archivos().length - maxArchivosLista | number }} archivos más
+            </li>
+          }
+        </ul>
+      </div>
+    }
+  }
+</div>

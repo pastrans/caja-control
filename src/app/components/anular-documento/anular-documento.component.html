@@ -1,0 +1,40 @@
+<form (ngSubmit)="onSubmit()" data-bs-theme="dark">
+  <div class="modal-header bg-dark text-light border-secondary">
+    <h5 class="modal-title fw-bold"><i class="bi bi-slash-circle me-2"></i>Anular {{ documento.type | tipoDocumento | lowercase }}</h5>
+    <button type="button" class="btn-close btn-close-white" aria-label="Close" (click)="activeModal.dismiss()"></button>
+  </div>
+  <div class="modal-body p-4 bg-dark text-light">
+    @if (errorMessage()) {
+      <div class="alert alert-danger py-2 small" role="alert">
+        {{ errorMessage() }}
+      </div>
+    }
+
+    <div class="alert alert-warning small">
+      <i class="bi bi-exclamation-triangle me-1"></i>
+      Anular solo saca el documento de los reportes de este sistema. <strong>No lo anula en Hacienda</strong>: eso solo lo puede hacer el proveedor.
+    </div>
+
+    <p class="small text-secondary mb-3">
+      Documento <span class="font-monospace text-light">{{ documento.controlNumber }}</span> de {{ documento.supplier.name }}
+      por {{ documento.totals.total | currency:'USD':'symbol':'1.2-2' }}.
+    </p>
+
+    <label class="form-label small fw-semibold text-secondary" for="motivoAnulacion">Motivo (obligatorio)</label>
+    <textarea id="motivoAnulacion" class="form-control bg-dark text-light border-secondary" rows="3"
+              [formControl]="motivo" [maxlength]="maxMotivo"
+              placeholder="Ej. Factura duplicada por el proveedor"></textarea>
+    <div class="d-flex justify-content-between small mt-1">
+      <span class="text-danger">
+        @if (motivo.invalid && motivo.touched) { El motivo es requerido. }
+      </span>
+      <span class="text-secondary">{{ motivo.value.length }}/{{ maxMotivo }}</span>
+    </div>
+  </div>
+  <div class="modal-footer bg-dark border-secondary">
+    <button type="button" class="btn btn-outline-secondary" (click)="activeModal.dismiss()">Cancelar</button>
+    <button type="submit" class="btn btn-danger d-flex align-items-center gap-2" [disabled]="motivo.invalid || isSubmitting()">
+      @if (isSubmitting()) { <span class="spinner-border spinner-border-sm"></span> } Anular documento
+    </button>
+  </div>
+</form>

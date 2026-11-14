@@ -1,12 +1,12 @@
 import { Component, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { NgbCollapseModule } from '@ng-bootstrap/ng-bootstrap';
+import { NgbCollapseModule, NgbDropdownModule } from '@ng-bootstrap/ng-bootstrap';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgbCollapseModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgbCollapseModule, NgbDropdownModule],
   templateUrl: './main-layout.component.html'
 })
 export class MainLayoutComponent {

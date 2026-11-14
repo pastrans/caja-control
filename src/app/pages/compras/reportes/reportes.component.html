@@ -1,0 +1,231 @@
+<div class="container-fluid mt-4" data-bs-theme="dark">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+    <div>
+      <h2 class="fw-bold mb-1">Reportes de compras</h2>
+      <p class="text-secondary small mb-0">Solo cuentan los documentos activos; las notas de crédito restan</p>
+    </div>
+    <button class="btn btn-outline-light" (click)="refrescar()">
+      <i class="bi bi-arrow-clockwise"></i> Refrescar
+    </button>
+  </div>
+
+  <ul ngbNav #nav="ngbNav" [activeId]="vista()" (activeIdChange)="vista.set($event)" class="nav-tabs border-secondary mb-3">
+    <!-- a) Resumen de IVA mensual -->
+    <li ngbNavItem="iva">
+      <button ngbNavLink><i class="bi bi-calendar3 me-1"></i> IVA mensual</button>
+      <ng-template ngbNavContent>
+        @if (errorIva()) {
+          <div class="alert alert-danger alert-dismissible fade show small" role="alert">
+            <i class="bi bi-exclamation-octagon me-1"></i> {{ errorIva() }}
+            <button type="button" class="btn-close" (click)="errorIva.set(null)" aria-label="Close"></button>
+          </div>
+        }
+
+        <div class="card border-secondary bg-dark-subtle shadow-sm mb-3">
+          <div class="card-header border-secondary d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+              <h6 class="fw-bold mb-0">Compras por mes</h6>
+              @if (ivaSummary(); as s) {
+                <span class="small text-secondary">
+                  {{ s.total.net.total | currency:'USD':'symbol':'1.2-2' }} netos ·
+                  {{ s.total.net.ivaCredit | currency:'USD':'symbol':'1.2-2' }} de crédito fiscal de IVA
+                </span>
+              }
+            </div>
+            <div class="d-flex gap-2">
+              <div class="btn-group btn-group-sm" role="group" aria-label="Métrica">
+                <button type="button" class="btn" [class.btn-light]="metrica() === 'total'" [class.btn-outline-secondary]="metrica() !== 'total'"
+                        (click)="metrica.set('total')">Total neto</button>
+                <button type="button" class="btn" [class.btn-light]="metrica() === 'ivaCredit'" [class.btn-outline-secondary]="metrica() !== 'ivaCredit'"
+                        (click)="metrica.set('ivaCredit')">Crédito de IVA</button>
+              </div>
+              @if (anios().length > 0) {
+                <select class="form-select form-select-sm w-auto" aria-label="Año" [disabled]="isLoadingIva()"
+                        [ngModel]="ivaSummary()?.year" (ngModelChange)="cargarIva($event)">
+                  @for (a of anios(); track a) {
+                    <option [ngValue]="a">{{ a }}</option>
+                  }
+                </select>
+              }
+            </div>
+          </div>
+          <div class="card-body" [class.opacity-50]="isLoadingIva()">
+            @if (ivaSummary(); as s) {
+              <app-grafica-mensual [datos]="s.months" [metrica]="metrica()"></app-grafica-mensual>
+            } @else {
+              <div class="text-center py-5 text-secondary small">
+                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                Cargando resumen...
+              </div>
+            }
+          </div>
+        </div>
+
+        @if (ivaSummary(); as s) {
+          <div class="card shadow-sm border-secondary bg-dark-subtle" [class.opacity-50]="isLoadingIva()">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0 table-dark text-nowrap small">
+                <thead>
+                  <tr>
+                    <th scope="col">Mes</th>
+                    <th scope="col" class="text-end">Compras gravadas</th>
+                    <th scope="col" class="text-end">IVA (13 %)</th>
+                    <th scope="col" class="text-end">IVA percibido (1 %)</th>
+                    <th scope="col" class="text-end">Crédito de IVA</th>
+                    <th scope="col" class="text-end">Total neto</th>
+                    <th scope="col" class="text-end">Créditos fiscales</th>
+                    <th scope="col" class="text-end">Notas de crédito</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (m of s.months; track m.month) {
+                    <tr [class.text-secondary]="m.creditosFiscales.documents === 0 && m.notasCredito.documents === 0">
+                      <td>{{ nombreMes(m.month) }}</td>
+                      <td class="text-end">{{ m.net.taxed | currency:'USD':'symbol':'1.2-2' }}</td>
+                      <td class="text-end">{{ m.net.iva | currency:'USD':'symbol':'1.2-2' }}</td>
+                      <td class="text-end">{{ m.net.ivaPerceived | currency:'USD':'symbol':'1.2-2' }}</td>
+                      <td class="text-end text-success">{{ m.net.ivaCredit | currency:'USD':'symbol':'1.2-2' }}</td>
+                      <td class="text-end fw-semibold">{{ m.net.total | currency:'USD':'symbol':'1.2-2' }}</td>
+                      <td class="text-end">{{ m.creditosFiscales.documents }}</td>
+                      <td class="text-end">{{ m.notasCredito.documents }}</td>
+                    </tr>
+                  }
+                </tbody>
+                <tfoot>
+                  <tr class="fw-bold border-top border-secondary">
+                    <td>Total {{ s.year }}</td>
+                    <td class="text-end">{{ s.total.net.taxed | currency:'USD':'symbol':'1.2-2' }}</td>
+                    <td class="text-end">{{ s.total.net.iva | currency:'USD':'symbol':'1.2-2' }}</td>
+                    <td class="text-end">{{ s.total.net.ivaPerceived | currency:'USD':'symbol':'1.2-2' }}</td>
+                    <td class="text-end text-success">{{ s.total.net.ivaCredit | currency:'USD':'symbol':'1.2-2' }}</td>
+                    <td class="text-end">{{ s.total.net.total | currency:'USD':'symbol':'1.2-2' }}</td>
+                    <td class="text-end">{{ s.total.creditosFiscales.documents }}</td>
+                    <td class="text-end">{{ s.total.notasCredito.documents }}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        }
+      </ng-template>
+    </li>
+
+    <!-- b) Total de compras -->
+    <li ngbNavItem="resumen">
+      <button ngbNavLink><i class="bi bi-cash-coin me-1"></i> Total de compras</button>
+      <ng-template ngbNavContent>
+        <ng-container *ngTemplateOutlet="filtroRango"></ng-container>
+
+        <div [class.opacity-50]="isLoadingResumen()">
+          @if (resumen(); as r) {
+            <app-resumen-compras [datos]="r"></app-resumen-compras>
+            <div class="mt-3">
+              <a class="btn btn-sm btn-outline-secondary" routerLink="/compras/documentos" [queryParams]="{ from: r.from, to: r.to, status: 'active' }">
+                <i class="bi bi-files"></i> Ver documentos del periodo
+              </a>
+            </div>
+          } @else if (isLoadingResumen()) {
+            <div class="text-center py-5 text-secondary small">
+              <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+              Cargando total de compras...
+            </div>
+          }
+        </div>
+      </ng-template>
+    </li>
+
+    <!-- c) Compras por proveedor -->
+    <li ngbNavItem="proveedores">
+      <button ngbNavLink><i class="bi bi-truck me-1"></i> Por proveedor</button>
+      <ng-template ngbNavContent>
+        <ng-container *ngTemplateOutlet="filtroRango"></ng-container>
+
+        @if (porProveedor(); as p) {
+          <div class="card shadow-sm border-secondary bg-dark-subtle" [class.opacity-50]="isLoadingProveedores()">
+            <div class="card-header border-secondary small text-secondary">
+              Total neto del periodo: <strong class="text-light">{{ p.total | currency:'USD':'symbol':'1.2-2' }}</strong>
+              · Clic en un proveedor para ver sus documentos del periodo
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0 table-dark text-nowrap small">
+                <thead>
+                  <tr>
+                    <th scope="col">Proveedor</th>
+                    <th scope="col" class="text-end">Créditos fiscales</th>
+                    <th scope="col" class="text-end">Notas de crédito</th>
+                    <th scope="col" class="text-end">Total neto</th>
+                    <th scope="col" class="text-end">IVA</th>
+                    <th scope="col" class="text-end">IVA percibido</th>
+                    <th scope="col" style="min-width: 160px;">Porcentaje</th>
+                    <th scope="col" class="text-end"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (s of p.suppliers; track s.supplierId) {
+                    <tr>
+                      <td class="text-truncate" style="max-width: 280px;" [title]="s.name">
+                        <a routerLink="/compras/documentos" class="link-light fw-semibold"
+                           [queryParams]="{ supplierId: s.supplierId, from: p.from, to: p.to, status: 'active' }">{{ s.name }}</a>
+                        <div class="text-secondary font-monospace">{{ s.nit }}</div>
+                      </td>
+                      <td class="text-end">{{ s.creditosFiscales }}</td>
+                      <td class="text-end">{{ s.notasCredito }}</td>
+                      <td class="text-end fw-semibold">{{ s.total | currency:'USD':'symbol':'1.2-2' }}</td>
+                      <td class="text-end">{{ s.iva | currency:'USD':'symbol':'1.2-2' }}</td>
+                      <td class="text-end">{{ s.ivaPerceived | currency:'USD':'symbol':'1.2-2' }}</td>
+                      <td>
+                        <div class="d-flex align-items-center gap-2">
+                          <div class="progress flex-grow-1" style="height: 6px;" role="progressbar"
+                               [attr.aria-valuenow]="s.percentage" aria-valuemin="0" aria-valuemax="100">
+                            <div class="progress-bar" [style.width.%]="s.percentage"></div>
+                          </div>
+                          <span class="text-secondary" style="min-width: 3.5em; text-align: right;">{{ s.percentage | number:'1.0-2' }}%</span>
+                        </div>
+                      </td>
+                      <td class="text-end">
+                        <a class="btn btn-sm btn-outline-info" title="Ver proveedor" [routerLink]="['/compras/proveedores', s.supplierId]">
+                          <i class="bi bi-truck"></i>
+                        </a>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="8" class="text-center text-secondary py-5">Sin compras en este periodo</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        } @else if (isLoadingProveedores()) {
+          <div class="text-center py-5 text-secondary small">
+            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+            Cargando compras por proveedor...
+          </div>
+        }
+      </ng-template>
+    </li>
+  </ul>
+
+  <div [ngbNavOutlet]="nav"></div>
+</div>
+
+<!-- Selector de rango compartido por "Total de compras" y "Por proveedor" -->
+<ng-template #filtroRango>
+  @if (errorRango()) {
+    <div class="alert alert-danger alert-dismissible fade show small" role="alert">
+      <i class="bi bi-exclamation-octagon me-1"></i> {{ errorRango() }}
+      <button type="button" class="btn-close" (click)="errorRango.set(null)" aria-label="Close"></button>
+    </div>
+  }
+  <div class="card border-secondary shadow-sm mb-3 bg-dark-subtle">
+    <div class="card-body py-2">
+      <app-selector-rango
+        [from]="rangoAplicado().from"
+        [to]="rangoAplicado().to"
+        [disabled]="isLoadingResumen() || isLoadingProveedores()"
+        (rangoChange)="cargarRango($event)">
+      </app-selector-rango>
+    </div>
+  </div>
+</ng-template>

@@ -52,6 +52,12 @@ export const routes: Routes = [
         canActivate: [roleGuard],
         data: { roles: ['ADMIN'] }
       },
+      {
+        path: 'compras',
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN'] },
+        loadChildren: () => import('./pages/compras/compras.routes').then(m => m.COMPRAS_ROUTES)
+      },
       { path: '', pathMatch: 'full', canActivate: [homeGuard], children: [] } // ADMIN → /inicio, CASHIER → /caja
     ]
   },

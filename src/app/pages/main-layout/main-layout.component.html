@@ -39,6 +39,30 @@
 
         <!-- Rutas exclusivas para ADMIN -->
         @if (authService.hasRole(['ADMIN'])) {
+          <li class="nav-item" ngbDropdown>
+            <button type="button" class="nav-link d-flex align-items-center gap-2" ngbDropdownToggle
+                    [class.active]="router.url.startsWith('/compras')">
+              <i class="bi bi-bag"></i> Compras
+            </button>
+            <div ngbDropdownMenu>
+              <a ngbDropdownItem class="d-flex align-items-center gap-2" routerLink="/compras/importar" routerLinkActive="active"
+                 (click)="isMenuCollapsed = true">
+                <i class="bi bi-upload"></i> Importar DTE
+              </a>
+              <a ngbDropdownItem class="d-flex align-items-center gap-2" routerLink="/compras/documentos" routerLinkActive="active"
+                 (click)="isMenuCollapsed = true">
+                <i class="bi bi-files"></i> Documentos
+              </a>
+              <a ngbDropdownItem class="d-flex align-items-center gap-2" routerLink="/compras/proveedores" routerLinkActive="active"
+                 (click)="isMenuCollapsed = true">
+                <i class="bi bi-truck"></i> Proveedores
+              </a>
+              <a ngbDropdownItem class="d-flex align-items-center gap-2" routerLink="/compras/reportes" routerLinkActive="active"
+                 (click)="isMenuCollapsed = true">
+                <i class="bi bi-graph-up"></i> Reportes
+              </a>
+            </div>
+          </li>
           <li class="nav-item">
             <a class="nav-link d-flex align-items-center gap-2" routerLink="/empleados" routerLinkActive="active">
               <i class="bi bi-person-badge"></i> Empleados

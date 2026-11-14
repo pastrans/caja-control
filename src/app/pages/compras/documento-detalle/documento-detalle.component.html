@@ -1,0 +1,296 @@
+<div class="container-fluid mt-4" data-bs-theme="dark">
+  <a routerLink="/compras/documentos" class="link-secondary small text-decoration-none d-inline-block mb-2">
+    <i class="bi bi-arrow-left"></i> Documentos de compra
+  </a>
+
+  @if (errorMessage()) {
+    <div class="alert alert-danger alert-dismissible fade show small" role="alert">
+      <i class="bi bi-exclamation-octagon me-1"></i> {{ errorMessage() }}
+      <button type="button" class="btn-close" (click)="errorMessage.set(null)" aria-label="Close"></button>
+    </div>
+  }
+
+  @if (isLoading() && !documento()) {
+    <div class="text-center py-5 text-secondary">
+      <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+      Cargando documento...
+    </div>
+  }
+
+  @if (documento(); as doc) {
+    <div [class.opacity-50]="isLoading()">
+      <!-- Encabezado y acciones -->
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-3">
+        <div>
+          <h2 class="fw-bold mb-1 d-flex flex-wrap align-items-center gap-2">
+            {{ doc.type | tipoDocumento }}
+            @if (doc.voided) {
+              <span class="badge bg-secondary fs-6">Anulado</span>
+            }
+            @if (doc.warnings.length > 0) {
+              <span class="badge bg-warning text-dark fs-6">Con advertencias</span>
+            }
+            @if (doc.pendingLinks.length > 0) {
+              <span class="badge border border-warning text-warning fs-6">Pendiente de vincular</span>
+            }
+          </h2>
+          <p class="text-secondary small mb-0 font-monospace">{{ doc.controlNumber }}</p>
+        </div>
+        <div class="d-flex gap-2">
+          @if (doc.voided) {
+            <button class="btn btn-outline-success d-flex align-items-center gap-2" [disabled]="isReactivating()" (click)="abrirReactivar(reactivarModal)">
+              @if (isReactivating()) { <span class="spinner-border spinner-border-sm"></span> }
+              <i class="bi bi-arrow-counterclockwise"></i> Reactivar
+            </button>
+          } @else {
+            <button class="btn btn-outline-danger" (click)="abrirAnular()">
+              <i class="bi bi-slash-circle"></i> Anular
+            </button>
+          }
+        </div>
+      </div>
+
+      @if (mensajeExito()) {
+        <div class="alert alert-success alert-dismissible fade show small" role="alert">
+          <i class="bi bi-check-circle me-1"></i> {{ mensajeExito() }}
+          <button type="button" class="btn-close" (click)="mensajeExito.set(null)" aria-label="Close"></button>
+        </div>
+      }
+
+      @if (avisoNotasCredito() && notasCreditoActivas().length > 0) {
+        <div class="alert alert-warning small" role="alert">
+          <i class="bi bi-exclamation-triangle me-1"></i>
+          Este crédito fiscal tiene {{ notasCreditoActivas().length }}
+          {{ notasCreditoActivas().length === 1 ? 'nota de crédito activa que sigue' : 'notas de crédito activas que siguen' }}
+          restando en los reportes. Si también deben salir, anúlalas:
+          @for (nc of notasCreditoActivas(); track nc.id; let ultimo = $last) {
+            <a [routerLink]="['/compras/documentos', nc.id]" class="alert-link font-monospace">{{ nc.controlNumber }}</a>{{ ultimo ? '.' : ', ' }}
+          }
+        </div>
+      }
+
+      <!-- Anulación -->
+      @if (doc.voided; as v) {
+        <div class="alert alert-secondary small d-flex gap-2" role="alert">
+          <i class="bi bi-slash-circle fs-5"></i>
+          <div>
+            <div class="fw-semibold">
+              Anulado el {{ v.voidedAt | date:'dd/MM/yy h:mm a' }}@if (v.voidedBy) { por {{ v.voidedBy.name }}}
+            </div>
+            <div>Motivo: {{ v.reason }}</div>
+            <div class="text-secondary">No cuenta en los reportes. Sigue vigente en Hacienda.</div>
+          </div>
+        </div>
+      }
+
+      <!-- Advertencias -->
+      @if (doc.warnings.length > 0 || doc.pendingLinks.length > 0) {
+        <div class="alert alert-warning small" role="alert">
+          @for (w of doc.warnings; track w.code) {
+            <div>
+              <i class="bi bi-exclamation-triangle me-1"></i>{{ w.code | advertencia }}
+              @if (codigosConDetalle.has(w.code)) {
+                <div class="text-body-secondary font-monospace ms-4 text-break">{{ w.message }}</div>
+              }
+            </div>
+          }
+          @if (doc.pendingLinks.length > 0) {
+            <div [class.mt-2]="doc.warnings.length > 0">
+              <i class="bi bi-link-45deg me-1"></i>Pendiente de vincular: falta importar
+              {{ doc.pendingLinks.length === 1 ? 'el crédito fiscal' : 'los créditos fiscales' }}
+              @for (codigo of doc.pendingLinks; track codigo; let ultimo = $last) {
+                <span class="font-monospace">{{ codigo }}</span>{{ ultimo ? '.' : ', ' }}
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <div class="row g-3 mb-3">
+        <!-- Datos del documento -->
+        <div class="col-lg-8">
+          <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+            <div class="card-header border-secondary">
+              <h6 class="fw-bold mb-0"><i class="bi bi-file-earmark-text me-2"></i>Documento</h6>
+            </div>
+            <div class="card-body small">
+              <dl class="row mb-0">
+                <dt class="col-sm-4 text-secondary fw-normal">Emisión</dt>
+                <dd class="col-sm-8">{{ doc.issueDate | fechaDte }} {{ doc.issueTime }}</dd>
+
+                <dt class="col-sm-4 text-secondary fw-normal">Condición</dt>
+                <dd class="col-sm-8">{{ doc.operationCondition | condicionOperacion }}</dd>
+
+                <dt class="col-sm-4 text-secondary fw-normal">Número de control</dt>
+                <dd class="col-sm-8 font-monospace text-break">{{ doc.controlNumber }}</dd>
+
+                <dt class="col-sm-4 text-secondary fw-normal">Código de generación</dt>
+                <dd class="col-sm-8 font-monospace text-break">{{ doc.generationCode }}</dd>
+
+                <dt class="col-sm-4 text-secondary fw-normal">Sello de recepción</dt>
+                <dd class="col-sm-8 font-monospace text-break">{{ doc.receptionStamp }}</dd>
+
+                <dt class="col-sm-4 text-secondary fw-normal">NRC receptor</dt>
+                <dd class="col-sm-8">{{ doc.receiverNrc }}</dd>
+
+                <dt class="col-sm-4 text-secondary fw-normal">Importado</dt>
+                <dd class="col-sm-8 mb-0">
+                  {{ doc.createdAt | date:'dd/MM/yy h:mm a' }}@if (doc.importedBy) { por {{ doc.importedBy.name }}}
+                </dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+
+        <!-- Proveedor -->
+        <div class="col-lg-4">
+          <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+            <div class="card-header border-secondary">
+              <h6 class="fw-bold mb-0"><i class="bi bi-truck me-2"></i>Proveedor</h6>
+            </div>
+            <div class="card-body small">
+              <a [routerLink]="['/compras/proveedores', doc.supplier.id]" class="link-info fw-semibold d-block mb-1">{{ doc.supplier.name }}</a>
+              <div class="text-secondary">NIT {{ doc.supplier.nit }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Productos -->
+      <div class="card border-secondary bg-dark-subtle shadow-sm mb-3">
+        <div class="card-header border-secondary">
+          <h6 class="fw-bold mb-0"><i class="bi bi-list-ul me-2"></i>{{ esNotaCredito() ? 'Conceptos' : 'Productos' }}</h6>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-dark table-hover align-middle mb-0 small">
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Descripción</th>
+                <th scope="col">Código</th>
+                <th scope="col" class="text-end">Cantidad</th>
+                <th scope="col" class="text-end">Precio unitario</th>
+                <th scope="col" class="text-end">Descuento</th>
+                <th scope="col" class="text-end">Gravado</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of doc.items; track item.itemNumber) {
+                <tr>
+                  <td class="text-secondary">{{ item.itemNumber }}</td>
+                  <td>{{ item.description }}</td>
+                  <td class="font-monospace text-secondary">{{ item.code ?? '—' }}</td>
+                  <td class="text-end">{{ item.quantity | number:'1.0-4' }}</td>
+                  <td class="text-end">{{ item.unitPrice | currency:'USD':'symbol':'1.2-6' }}</td>
+                  <td class="text-end">{{ item.discount | currency:'USD':'symbol':'1.2-2' }}</td>
+                  <td class="text-end fw-semibold">{{ item.taxedSale | currency:'USD':'symbol':'1.2-2' }}</td>
+                </tr>
+              } @empty {
+                <tr><td colspan="7" class="text-center text-secondary py-3">Sin líneas</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <!-- Documentos relacionados -->
+        <div class="col-lg-7">
+          <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+            <div class="card-header border-secondary">
+              <h6 class="fw-bold mb-0">
+                <i class="bi bi-link-45deg me-2"></i>{{ esNotaCredito() ? 'Documentos que modifica' : 'Notas de crédito' }}
+              </h6>
+            </div>
+            <ul class="list-group list-group-flush small">
+              @if (esNotaCredito()) {
+                @for (rel of doc.relatedDocuments; track rel.relatedDocumentNumber) {
+                  <li class="list-group-item bg-transparent border-secondary">
+                    @if (rel.document; as ref) {
+                      <div class="d-flex justify-content-between align-items-center gap-2">
+                        <span>
+                          <a [routerLink]="['/compras/documentos', ref.id]" class="link-info font-monospace">{{ ref.controlNumber }}</a>
+                          <span class="text-secondary ms-2">Crédito fiscal · {{ ref.issueDate | fechaDte }}</span>
+                          @if (ref.voided) { <span class="badge bg-secondary ms-1">Anulado</span> }
+                        </span>
+                        <span class="fw-semibold text-nowrap">{{ ref.total | currency:'USD':'symbol':'1.2-2' }}</span>
+                      </div>
+                    } @else if (rel.generationType === 1) {
+                      <i class="bi bi-file-earmark me-1 text-secondary"></i>
+                      Documento físico <span class="font-monospace">{{ rel.relatedDocumentNumber }}</span>
+                      <span class="text-secondary">· {{ rel.relatedIssueDate | fechaDte }} · no se puede vincular</span>
+                    } @else {
+                      <span class="text-warning">
+                        <i class="bi bi-hourglass-split me-1"></i>
+                        Pendiente de vincular: importa el crédito fiscal
+                      </span>
+                      <span class="font-monospace text-break">{{ rel.relatedDocumentNumber }}</span>
+                      <span class="text-secondary">· {{ rel.relatedIssueDate | fechaDte }}</span>
+                    }
+                  </li>
+                } @empty {
+                  <li class="list-group-item bg-transparent border-secondary text-secondary">Sin documentos relacionados</li>
+                }
+              } @else {
+                @for (nc of doc.creditNotes; track nc.id) {
+                  <li class="list-group-item bg-transparent border-secondary d-flex justify-content-between align-items-center gap-2"
+                      [class.opacity-50]="nc.voided">
+                    <span>
+                      <a [routerLink]="['/compras/documentos', nc.id]" class="link-info font-monospace">{{ nc.controlNumber }}</a>
+                      <span class="text-secondary ms-2">{{ nc.issueDate | fechaDte }}</span>
+                      @if (nc.voided) { <span class="badge bg-secondary ms-1">Anulada</span> }
+                    </span>
+                    <span class="fw-semibold text-danger text-nowrap">{{ -nc.total | currency:'USD':'symbol':'1.2-2' }}</span>
+                  </li>
+                } @empty {
+                  <li class="list-group-item bg-transparent border-secondary text-secondary">Sin notas de crédito</li>
+                }
+              }
+            </ul>
+          </div>
+        </div>
+
+        <!-- Totales -->
+        <div class="col-lg-5">
+          <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+            <div class="card-header border-secondary">
+              <h6 class="fw-bold mb-0"><i class="bi bi-calculator me-2"></i>Totales</h6>
+            </div>
+            <div class="card-body small">
+              @for (fila of filasTotales(); track fila.label) {
+                <div class="d-flex justify-content-between py-1">
+                  <span class="text-secondary">{{ fila.label }}</span>
+                  <span>{{ (fila.resta && fila.valor ? -fila.valor : fila.valor) | currency:'USD':'symbol':'1.2-2' }}</span>
+                </div>
+              }
+              <div class="d-flex justify-content-between border-top border-secondary pt-2 mt-1 fs-6 fw-bold">
+                <span>Total</span>
+                <span [class.text-danger]="esNotaCredito()">{{ doc.totals.total | currency:'USD':'symbol':'1.2-2' }}</span>
+              </div>
+              @if (esNotaCredito()) {
+                <div class="text-secondary mt-1">Las notas de crédito restan de las compras.</div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- Confirmación de reactivación -->
+<ng-template #reactivarModal let-modal>
+  <div data-bs-theme="dark">
+    <div class="modal-header bg-dark text-light border-secondary">
+      <h5 class="modal-title fw-bold"><i class="bi bi-arrow-counterclockwise me-2"></i>Reactivar documento</h5>
+      <button type="button" class="btn-close btn-close-white" aria-label="Close" (click)="modal.dismiss()"></button>
+    </div>
+    <div class="modal-body p-4 bg-dark text-light">
+      El documento volverá a contar en los reportes y se borrarán los datos de la anulación. ¿Deseas continuar?
+    </div>
+    <div class="modal-footer bg-dark border-secondary">
+      <button type="button" class="btn btn-outline-secondary" (click)="modal.dismiss()">Cancelar</button>
+      <button type="button" class="btn btn-success" (click)="modal.close('confirm')">Reactivar</button>
+    </div>
+  </div>
+</ng-template>

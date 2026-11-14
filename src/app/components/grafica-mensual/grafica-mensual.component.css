@@ -1,0 +1,25 @@
+/* Misma estructura que la gráfica de Inicio, con una sola serie */
+
+.chart-alto { height: 220px; }
+
+.chart { position: relative; height: 220px; margin-left: 56px; padding-bottom: 24px; }
+
+.chart-plot { position: absolute; inset: 0 0 24px 0; }
+.chart-grid { position: absolute; left: 0; right: 0; border-top: 1px solid var(--bs-border-color-translucent); }
+.chart-grid span {
+  position: absolute; right: 100%; transform: translateY(-50%);
+  padding-right: 8px; font-size: .75rem; color: var(--bs-secondary-color);
+}
+
+.chart-barras { display: flex; align-items: flex-end; gap: 6px; }
+.chart-col { flex: 1; height: 100%; display: flex; align-items: flex-end; min-width: 0; }
+.chart-bar { width: 100%; min-height: 2px; background: var(--bs-primary); border-radius: 4px 4px 0 0; }
+.chart-bar.activa { filter: brightness(1.25); }
+
+.chart-tooltip {
+  position: absolute; top: 0; transform: translateX(-50%);
+  padding: .4rem .6rem; pointer-events: none; white-space: nowrap; z-index: 2;
+}
+
+.chart-x { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 6px; }
+.chart-x span { flex: 1; min-width: 0; text-align: center; font-size: .7rem; color: var(--bs-secondary-color); }
