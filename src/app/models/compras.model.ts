@@ -272,6 +272,7 @@ export interface ProductPriceStatsDTO {
   changePct: number;
   lastChangePct: number | null;
   trend: ProductPriceTrend | null; // null: menos de 4 compras o menos de 60 días
+  variants: number; // Variantes unidas (sus compras ya están sumadas)
 }
 
 export interface ProductsTrendSummary {
@@ -330,8 +331,49 @@ export interface ProductHistoryDTO {
   months: number | null;
   from: string;
   to: string;
-  product: ProductPriceStatsDTO;
+  product: ProductPriceStatsDTO; // Si se pidió una variante, es su producto principal
+  variants: ProductVariantInfoDTO[];
   points: ProductPricePointDTO[];
   monthly: ProductPriceMonthDTO[];
   projection: ProductPriceProjectionDTO[];
+}
+
+// ---------- Variantes (el mismo producto con otro código o nombre) ----------
+
+// Un producto por separado, con todo su historial
+export interface ProductSummaryDTO {
+  key: string;
+  ref: string;
+  name: string;
+  unitOfMeasure: number;
+  purchases: number;
+  firstDate: string;
+  lastDate: string;
+  lastPrice: number;
+}
+
+export interface ProductVariantInfoDTO extends ProductSummaryDTO {
+  createdAt: string;
+  createdBy: string;
+}
+
+export interface ProductMergeDTO {
+  supplierId: number;
+  supplierName: string;
+  product: ProductSummaryDTO;
+  variants: ProductVariantInfoDTO[];
+}
+
+export interface ProductMergeSuggestionDTO {
+  supplierId: number;
+  supplierName: string;
+  signature: string;    // Se envía para descartar la sugerencia
+  suggestedKey: string; // Principal sugerido: el que tiene más compras
+  sameUnit: boolean;    // false: mezcla unidades de medida con precio parecido (revisar antes de unir)
+  products: ProductSummaryDTO[];
+}
+
+export interface MergeProductsResultDTO {
+  key: string; // Producto principal
+  variants: number;
 }

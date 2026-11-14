@@ -1,11 +1,12 @@
-import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, TemplateRef, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Params, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NgbPaginationModule, NgbTooltipModule } from '@ng-bootstrap/ng-bootstrap';
+import { NgbModal, NgbModalModule, NgbPaginationModule, NgbTooltipModule } from '@ng-bootstrap/ng-bootstrap';
 import { PurchaseProductsService } from '../../../services/purchase-products.service';
-import { ProductHistoryDTO, ProductPeriod, ProductPricePointDTO } from '../../../models/compras.model';
+import { ProductHistoryDTO, ProductPeriod, ProductPricePointDTO, ProductVariantInfoDTO } from '../../../models/compras.model';
+import { NotaGuiaComponent } from '../../../components/nota-guia/nota-guia.component';
 import { FechaDtePipe, UnidadMedidaPipe } from '../../../pipes/compras.pipes';
 import {
   MESES_LARGOS,
@@ -30,7 +31,10 @@ const porcentaje = (valor: number) => `${Math.abs(valor).toLocaleString('es-SV',
 @Component({
   selector: 'app-producto-detalle',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, NgbPaginationModule, NgbTooltipModule, FechaDtePipe, UnidadMedidaPipe, GraficaPreciosComponent],
+  imports: [
+    CommonModule, FormsModule, RouterLink, NgbModalModule, NgbPaginationModule, NgbTooltipModule,
+    FechaDtePipe, UnidadMedidaPipe, GraficaPreciosComponent, NotaGuiaComponent
+  ],
   templateUrl: './producto-detalle.component.html'
 })
 export class ProductoDetalleComponent implements OnInit {
@@ -38,6 +42,7 @@ export class ProductoDetalleComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly modalService = inject(NgbModal);
 
   readonly periodos = PERIODOS_PRODUCTOS;
   readonly confianza = confianzaTendencia;
@@ -48,6 +53,8 @@ export class ProductoDetalleComponent implements OnInit {
   errorMessage = signal<string | null>(null);
   periodo = signal<ProductPeriod>(PERIODO_DEFECTO);
   paginaCompras = signal<number>(1);
+  separando = signal<string | null>(null); // Variante que se está separando
+  mensajeExito = signal<string | null>(null);
   private key = '';
 
   producto = computed(() => this.historial()?.product ?? null);
@@ -119,10 +126,16 @@ export class ProductoDetalleComponent implements OnInit {
     this.route.queryParamMap
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(params => {
-        this.key = params.get('key') ?? '';
+        const key = params.get('key') ?? '';
         const months = params.get('months');
         const numero = Number(months);
-        this.periodo.set(months === 'all' ? 'all' : Number.isInteger(numero) && numero > 0 ? numero : PERIODO_DEFECTO);
+        const periodo: ProductPeriod = months === 'all' ? 'all' : Number.isInteger(numero) && numero > 0 ? numero : PERIODO_DEFECTO;
+
+        // Al reemplazar la clave de una variante por la del principal ya está cargado
+        if (key === this.historial()?.product.key && periodo === this.periodo()) return;
+
+        this.key = key;
+        this.periodo.set(periodo);
         this.paginaCompras.set(1);
         this.cargar();
       });
@@ -141,6 +154,16 @@ export class ProductoDetalleComponent implements OnInit {
       next: (res) => {
         this.historial.set(res);
         this.isLoading.set(false);
+        // Si se pidió una variante, la URL pasa a ser la del producto principal (sin recargar)
+        if (res.product.key !== this.key) {
+          this.key = res.product.key;
+          this.router.navigate([], {
+            relativeTo: this.route,
+            queryParams: { key: res.product.key },
+            queryParamsHandling: 'merge',
+            replaceUrl: true
+          });
+        }
       },
       error: (err) => {
         this.historial.set(null);
@@ -162,5 +185,34 @@ export class ProductoDetalleComponent implements OnInit {
 
   nombreMes(mes: string): string {
     return `${MESES_LARGOS[indiceMes(mes)]} ${mes.slice(0, 4)}`;
+  }
+
+  separarVariante(variante: ProductVariantInfoDTO, modal: TemplateRef<unknown>): void {
+    this.modalService.open(modal, { centered: true }).result.then(
+      (resultado) => {
+        if (resultado !== 'confirmar') return;
+        this.separando.set(variante.key);
+        this.mensajeExito.set(null);
+
+        this.purchaseProductsService.unmerge(variante.key).subscribe({
+          next: () => {
+            this.separando.set(null);
+            this.mensajeExito.set(`"${variante.name}" volvió a ser un producto aparte.`);
+            this.cargar();
+          },
+          error: (err) => {
+            this.separando.set(null);
+            this.errorMessage.set(err.error?.error || 'Error al separar la variante.');
+          }
+        });
+      },
+      () => { /* Modal cerrado sin confirmar */ }
+    );
+  }
+
+  // Abre "Unir manualmente" con este producto como principal
+  queryUnir(): Params {
+    const p = this.producto();
+    return p ? { vista: 'manual', supplierId: p.supplierId, principal: p.key } : {};
   }
 }

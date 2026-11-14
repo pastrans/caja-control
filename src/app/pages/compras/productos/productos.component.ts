@@ -16,6 +16,7 @@ import {
 } from '../../../models/compras.model';
 import { FechaDtePipe, UnidadMedidaPipe } from '../../../pipes/compras.pipes';
 import { PERIODOS_PRODUCTOS, confianzaTendencia } from '../../../utils/compras.utils';
+import { NotaGuiaComponent } from '../../../components/nota-guia/nota-guia.component';
 
 interface Orden {
   id: string;
@@ -41,7 +42,7 @@ const PERIODO_DEFECTO: ProductPeriod = 12;
 @Component({
   selector: 'app-productos',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, NgbPaginationModule, NgbTooltipModule, FechaDtePipe, UnidadMedidaPipe],
+  imports: [CommonModule, FormsModule, RouterLink, NgbPaginationModule, NgbTooltipModule, FechaDtePipe, UnidadMedidaPipe, NotaGuiaComponent],
   templateUrl: './productos.component.html'
 })
 export class ProductosComponent implements OnInit {
@@ -51,13 +52,21 @@ export class ProductosComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly busqueda$ = new Subject<string>();
+  private sugerenciasCargadas = false;
 
   readonly periodos = PERIODOS_PRODUCTOS;
   readonly ordenes = ORDENES;
   readonly confianza = confianzaTendencia;
+  readonly consejosGuia = [
+    'Variación: cuánto cambió el precio entre la primera y la última compra del periodo. En rojo sube (pagas más) y en verde baja.',
+    'Tendencia: hacia dónde va el precio mes a mes, usando todas las compras del periodo. Necesita al menos 4 compras en 60 días.',
+    'Confianza: qué tan parejo se mueve el precio. Si es baja, el precio sube y baja mucho y la tendencia orienta poco.',
+    'Los precios son por unidad de medida (libra o unidad), con descuento y sin IVA. Las bonificaciones no cuentan.'
+  ];
 
   // Estados reactivos
   productos = signal<ProductPriceStatsDTO[]>([]);
+  sugerenciasPendientes = signal<number>(0); // Grupos de variantes por revisar
   resumen = signal<ProductsTrendSummary | null>(null);
   proveedores = signal<SupplierDTO[]>([]);
   rango = signal<{ from: string; to: string } | null>(null);
@@ -93,7 +102,10 @@ export class ProductosComponent implements OnInit {
         this.periodo.set(months === 'all' ? 'all' : Number.isInteger(numero) && numero > 0 ? numero : PERIODO_DEFECTO);
 
         const supplierId = Number(params.get('supplierId'));
-        this.supplierId.set(Number.isInteger(supplierId) && supplierId > 0 ? supplierId : null);
+        const proveedor = Number.isInteger(supplierId) && supplierId > 0 ? supplierId : null;
+        const proveedorCambio = proveedor !== this.supplierId() || !this.sugerenciasCargadas;
+        this.supplierId.set(proveedor);
+        if (proveedorCambio) this.cargarSugerencias();
 
         this.busqueda.set(params.get('q') ?? '');
         this.orden.set(ORDENES.find(o => o.id === params.get('orden')) ?? ORDENES[0]);
@@ -103,6 +115,15 @@ export class ProductosComponent implements OnInit {
 
         this.cargarProductos();
       });
+  }
+
+  // Solo para el aviso: si falla, la pantalla sigue funcionando sin él
+  private cargarSugerencias(): void {
+    this.sugerenciasCargadas = true;
+    this.purchaseProductsService.getSuggestions(this.supplierId() ?? undefined).subscribe({
+      next: (res) => this.sugerenciasPendientes.set(res.length),
+      error: () => this.sugerenciasPendientes.set(0)
+    });
   }
 
   cargarProductos(): void {

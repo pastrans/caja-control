@@ -1,0 +1,36 @@
+<aside class="nota-guia" [class.aviso]="tipo === 'aviso'" role="note" [attr.aria-label]="titulo || 'Nota de ayuda'">
+  <div class="nota-encabezado">
+    <i [class]="'bi nota-icono ' + icono" aria-hidden="true"></i>
+    @if (titulo) {
+      <span class="nota-titulo">{{ titulo }}</span>
+    }
+  </div>
+
+  <div class="nota-texto">
+    <ng-content></ng-content>
+  </div>
+
+  @if (pasos.length > 0) {
+    <ol class="nota-pasos">
+      @for (paso of pasos; track $index) {
+        <li class="nota-paso">
+          <span class="nota-numero" aria-hidden="true">
+            @if (paso.icono) { <i [class]="'bi ' + paso.icono"></i> } @else { {{ $index + 1 }} }
+          </span>
+          <span class="nota-paso-cuerpo">
+            <span class="nota-paso-titulo">{{ paso.titulo }}</span>
+            <span class="nota-paso-texto">{{ paso.texto }}</span>
+          </span>
+        </li>
+      }
+    </ol>
+  }
+
+  @if (consejos.length > 0) {
+    <ul class="nota-consejos">
+      @for (consejo of consejos; track $index) {
+        <li>{{ consejo }}</li>
+      }
+    </ul>
+  }
+</aside>

@@ -4,27 +4,40 @@
   </a>
 
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-3">
-    <div>
-      <h2 class="fw-bold mb-1">{{ producto()?.name ?? 'Producto' }}</h2>
+    <div style="min-width: 0;">
+      <h2 class="fw-bold mb-1 text-break">{{ producto()?.name ?? 'Producto' }}</h2>
       @if (producto(); as p) {
-        <p class="text-secondary small mb-0">
+        <p class="text-secondary small mb-0 text-break">
           <span class="font-monospace">{{ p.ref }}</span> ·
           <a [routerLink]="['/compras/proveedores', p.supplierId]" class="link-info">{{ p.supplierName }}</a> ·
           Precio por {{ p.unitOfMeasure | unidadMedida | lowercase }}, sin IVA
         </p>
       }
     </div>
-    <select class="form-select form-select-sm w-auto" aria-label="Periodo" [disabled]="isLoading()"
-            [ngModel]="periodo()" (ngModelChange)="cambiarPeriodo($event)">
-      @for (p of periodos; track p.id) {
-        <option [ngValue]="p.id">{{ p.label }}</option>
+    <div class="d-grid gap-2 d-sm-flex flex-shrink-0">
+      @if (producto()) {
+        <a class="btn btn-sm btn-outline-info" routerLink="/compras/productos/variantes" [queryParams]="queryUnir()">
+          <i class="bi bi-intersect"></i> Unir variantes
+        </a>
       }
-    </select>
+      <select class="form-select form-select-sm" aria-label="Periodo" [disabled]="isLoading()"
+              [ngModel]="periodo()" (ngModelChange)="cambiarPeriodo($event)">
+        @for (p of periodos; track p.id) {
+          <option [ngValue]="p.id">{{ p.label }}</option>
+        }
+      </select>
+    </div>
   </div>
 
   @if (errorMessage()) {
     <div class="alert alert-danger small" role="alert">
       <i class="bi bi-exclamation-octagon me-1"></i> {{ errorMessage() }}
+    </div>
+  }
+  @if (mensajeExito()) {
+    <div class="alert alert-success alert-dismissible fade show small" role="alert">
+      <i class="bi bi-check-circle me-1"></i> {{ mensajeExito() }}
+      <button type="button" class="btn-close" (click)="mensajeExito.set(null)" aria-label="Close"></button>
     </div>
   }
 
@@ -39,14 +52,44 @@
     @if (producto(); as p) {
       <div [class.opacity-50]="isLoading()">
         <!-- Qué dicen los números -->
-        <div class="alert alert-secondary small d-flex gap-2 mb-3">
-          <i class="bi bi-lightbulb fs-5"></i>
-          <div>
-            @for (frase of interpretacion(); track $index) {
-              <div>{{ frase }}</div>
-            }
+        <app-nota-guia class="d-block mb-3" titulo="Qué dicen los números">
+          @for (frase of interpretacion(); track $index) {
+            <div>{{ frase }}</div>
+          }
+        </app-nota-guia>
+
+        <!-- Variantes unidas: sus compras ya están sumadas en todo lo que se ve abajo -->
+        @if (h.variants.length > 0) {
+          <div class="card border-info bg-dark-subtle shadow-sm mb-3">
+            <div class="card-header border-secondary">
+              <h6 class="fw-bold mb-0">
+                <i class="bi bi-intersect me-1"></i>
+                Incluye {{ h.variants.length }} {{ h.variants.length === 1 ? 'variante' : 'variantes' }}
+              </h6>
+              <span class="small text-secondary">Sus compras ya se suman en los precios, la gráfica y las tablas de abajo.</span>
+            </div>
+            <ul class="list-group list-group-flush">
+              @for (v of h.variants; track v.key) {
+                <li class="list-group-item bg-transparent border-secondary d-flex flex-column flex-sm-row gap-2 align-items-sm-center">
+                  <div class="flex-grow-1" style="min-width: 0;">
+                    <div class="text-break">{{ v.name }}</div>
+                    <div class="small text-secondary text-break">
+                      <span class="font-monospace">{{ v.ref }}</span> · por {{ v.unitOfMeasure | unidadMedida | lowercase }} ·
+                      {{ v.purchases }} {{ v.purchases === 1 ? 'compra' : 'compras' }}
+                      @if (v.firstDate) { ({{ v.firstDate | fechaDte }} a {{ v.lastDate | fechaDte }}) } ·
+                      unida por {{ v.createdBy }}
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-warning flex-shrink-0 d-inline-flex align-items-center justify-content-center gap-2"
+                          [disabled]="separando() !== null" (click)="separarVariante(v, confirmarSeparar)">
+                    @if (separando() === v.key) { <span class="spinner-border spinner-border-sm"></span> }
+                    <i class="bi bi-scissors"></i> Separar
+                  </button>
+                </li>
+              }
+            </ul>
           </div>
-        </div>
+        }
 
         <!-- Indicadores -->
         <div class="row g-3 mb-3">
@@ -237,3 +280,20 @@
     }
   }
 </div>
+
+<!-- Confirmación para separar una variante -->
+<ng-template #confirmarSeparar let-modal>
+  <div data-bs-theme="dark">
+    <div class="modal-header bg-dark text-light border-secondary">
+      <h5 class="modal-title fw-bold"><i class="bi bi-scissors me-2"></i>Separar variante</h5>
+      <button type="button" class="btn-close btn-close-white" aria-label="Close" (click)="modal.dismiss()"></button>
+    </div>
+    <div class="modal-body p-4 bg-dark text-light">
+      Sus compras dejarán de sumarse a este producto y volverá a aparecer como un producto aparte. Puedes volver a unirlo después.
+    </div>
+    <div class="modal-footer bg-dark border-secondary">
+      <button type="button" class="btn btn-outline-secondary" (click)="modal.dismiss()">Cancelar</button>
+      <button type="button" class="btn btn-warning" (click)="modal.close('confirmar')">Separar</button>
+    </div>
+  </div>
+</ng-template>

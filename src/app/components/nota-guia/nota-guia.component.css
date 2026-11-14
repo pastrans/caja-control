@@ -1,0 +1,39 @@
+:host { display: block; min-width: 0; }
+
+.nota-guia {
+  --nota-color: var(--bs-info);
+  border: 1px solid var(--bs-border-color);
+  border-left: 4px solid var(--nota-color);
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-tertiary-bg);
+  /* Más compacta en pantallas chicas sin necesidad de breakpoints */
+  padding: clamp(.65rem, 2.5vw, 1rem) clamp(.75rem, 3vw, 1.25rem);
+  font-size: .875rem;
+  overflow-wrap: anywhere; /* Códigos y nombres largos no desbordan en el celular */
+}
+.nota-guia.aviso { --nota-color: var(--bs-warning); }
+
+.nota-encabezado { display: flex; align-items: center; gap: .5rem; }
+.nota-icono { color: var(--nota-color); font-size: 1.1rem; flex-shrink: 0; }
+.nota-titulo { font-weight: 600; color: var(--bs-emphasis-color); }
+
+.nota-texto:not(:empty) { margin-top: .35rem; color: var(--bs-secondary-color); }
+
+/* Pasos: tantas columnas como quepan (mínimo 210px cada una); en el celular, una sola */
+.nota-pasos {
+  list-style: none; margin: .75rem 0 0; padding: 0;
+  display: grid; gap: .75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+}
+.nota-paso { display: flex; gap: .6rem; align-items: flex-start; min-width: 0; }
+.nota-numero {
+  flex-shrink: 0; width: 1.6rem; height: 1.6rem; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--nota-color); color: var(--bs-dark); font-weight: 700; font-size: .8rem;
+}
+.nota-paso-cuerpo { display: flex; flex-direction: column; min-width: 0; }
+.nota-paso-titulo { font-weight: 600; color: var(--bs-emphasis-color); }
+.nota-paso-texto { color: var(--bs-secondary-color); }
+
+.nota-consejos { margin: .75rem 0 0; padding-left: 1.1rem; color: var(--bs-secondary-color); }
+.nota-consejos li + li { margin-top: .2rem; }

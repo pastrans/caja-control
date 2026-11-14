@@ -58,8 +58,13 @@
                 <i class="bi bi-truck"></i> Proveedores
               </a>
               <a ngbDropdownItem class="d-flex align-items-center gap-2" routerLink="/compras/productos" routerLinkActive="active"
+                 [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'ignored', fragment: 'ignored', matrixParams: 'ignored' }"
                  (click)="isMenuCollapsed = true">
                 <i class="bi bi-box-seam"></i> Precios de productos
+              </a>
+              <a ngbDropdownItem class="d-flex align-items-center gap-2" routerLink="/compras/productos/variantes" routerLinkActive="active"
+                 (click)="isMenuCollapsed = true">
+                <i class="bi bi-intersect"></i> Unir variantes
               </a>
               <a ngbDropdownItem class="d-flex align-items-center gap-2" routerLink="/compras/reportes" routerLinkActive="active"
                  (click)="isMenuCollapsed = true">

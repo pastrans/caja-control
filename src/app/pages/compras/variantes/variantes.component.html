@@ -1,0 +1,337 @@
+<div class="container-fluid mt-4" data-bs-theme="dark">
+  <a routerLink="/compras/productos" class="link-secondary small text-decoration-none d-inline-block mb-2">
+    <i class="bi bi-arrow-left"></i> Precios de productos
+  </a>
+
+  <div class="mb-3">
+    <h2 class="fw-bold mb-1">Unir variantes de productos</h2>
+    <p class="text-secondary small mb-0">
+      Cuando un proveedor cambia el nombre o el código de un producto, su historial de precios queda partido. Aquí lo vuelves a juntar.
+    </p>
+  </div>
+
+  <app-nota-guia class="d-block mb-3" titulo="¿Cómo funciona?" [pasos]="pasosGuia" [consejos]="consejosGuia"></app-nota-guia>
+
+  @if (errorMessage()) {
+    <div class="alert alert-danger alert-dismissible fade show small" role="alert">
+      <i class="bi bi-exclamation-octagon me-1"></i> {{ errorMessage() }}
+      <button type="button" class="btn-close" (click)="errorMessage.set(null)" aria-label="Close"></button>
+    </div>
+  }
+  @if (mensajeExito()) {
+    <div class="alert alert-success alert-dismissible fade show small" role="alert">
+      <i class="bi bi-check-circle me-1"></i> {{ mensajeExito() }}
+      <button type="button" class="btn-close" (click)="mensajeExito.set(null)" aria-label="Close"></button>
+    </div>
+  }
+
+  <!-- Proveedor -->
+  <div class="card border-secondary shadow-sm mb-3 bg-dark-subtle">
+    <div class="card-body py-2 row g-2 align-items-center">
+      <label class="col-12 col-sm-auto small text-secondary mb-0" for="proveedorVariantes">Proveedor</label>
+      <div class="col-12 col-sm-auto">
+        <select id="proveedorVariantes" class="form-select form-select-sm"
+                [ngModel]="supplierId()" (ngModelChange)="cambiarProveedor($event)">
+          <option [ngValue]="null">Todos los proveedores</option>
+          @for (p of proveedores(); track p.id) {
+            <option [ngValue]="p.id">{{ p.name }}</option>
+          }
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <ul ngbNav #nav="ngbNav" [activeId]="vista()" (activeIdChange)="cambiarVista($event)"
+      class="nav-pills flex-column flex-sm-row gap-1 mb-3">
+    <!-- Sugerencias -->
+    <li ngbNavItem="sugerencias">
+      <button ngbNavLink class="w-100 text-start text-sm-center">
+        <i class="bi bi-magic me-1"></i> Sugerencias
+        <span class="badge bg-secondary ms-1">{{ sugerencias().length }}</span>
+      </button>
+      <ng-template ngbNavContent>
+        @if (isLoadingSugerencias() && sugerencias().length === 0) {
+          <div class="text-center py-5 text-secondary small">
+            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+            Buscando productos parecidos...
+          </div>
+        } @else if (sugerencias().length === 0) {
+          <div class="card border-secondary bg-dark-subtle">
+            <div class="card-body text-center text-secondary py-5">
+              <i class="bi bi-check2-circle fs-2 d-block mb-2 text-success"></i>
+              No hay sugerencias pendientes{{ supplierId() ? ' para este proveedor' : '' }}.
+              <div class="small mt-1">Si conoces dos productos que son el mismo, únelos en "Unir manualmente".</div>
+            </div>
+          </div>
+        } @else {
+          <div class="d-flex flex-column gap-3" [class.opacity-50]="isLoadingSugerencias()">
+            @for (s of sugerencias(); track claveSugerencia(s); let si = $index) {
+              <div class="card border-secondary bg-dark-subtle shadow-sm">
+                <div class="card-header border-secondary">
+                  <div class="small text-secondary text-break">{{ s.supplierName }}</div>
+                  <div class="fw-semibold text-break">{{ s.products.length }} productos que parecen el mismo</div>
+                </div>
+
+                <ul class="list-group list-group-flush">
+                  @for (p of s.products; track p.key; let pi = $index) {
+                    <li class="list-group-item bg-transparent border-secondary d-flex gap-3 align-items-start"
+                        [class.opacity-50]="!seleccionDe(s).incluidos.includes(p.key)">
+                      <div class="d-flex flex-column gap-1 flex-shrink-0 small pt-1">
+                        <div class="form-check mb-0">
+                          <input class="form-check-input" type="radio" [name]="'principal-' + si"
+                                 [id]="'p-' + si + '-' + pi" [checked]="seleccionDe(s).principal === p.key"
+                                 (change)="elegirPrincipal(s, p.key)">
+                          <label class="form-check-label" [for]="'p-' + si + '-' + pi">Principal</label>
+                        </div>
+                        <div class="form-check mb-0">
+                          <input class="form-check-input" type="checkbox" [id]="'i-' + si + '-' + pi"
+                                 [checked]="seleccionDe(s).incluidos.includes(p.key)"
+                                 [disabled]="seleccionDe(s).principal === p.key"
+                                 (change)="alternarIncluido(s, p.key)">
+                          <label class="form-check-label" [for]="'i-' + si + '-' + pi">Incluir</label>
+                        </div>
+                      </div>
+                      <div class="flex-grow-1" style="min-width: 0;">
+                        <div class="fw-semibold text-break">{{ p.name }}</div>
+                        <div class="small text-secondary text-break">
+                          <span class="font-monospace">{{ p.ref }}</span> · por {{ p.unitOfMeasure | unidadMedida | lowercase }}
+                        </div>
+                        <div class="small text-secondary">
+                          {{ p.purchases }} {{ p.purchases === 1 ? 'compra' : 'compras' }} ·
+                          {{ p.firstDate | fechaDte }} a {{ p.lastDate | fechaDte }} ·
+                          último {{ p.lastPrice | currency:'USD':'symbol':'1.2-4' }}
+                        </div>
+                      </div>
+                    </li>
+                  }
+                </ul>
+
+                <div class="card-footer border-secondary bg-transparent">
+                  @if (mezclaUnidades(s)) {
+                    <div class="small text-warning mb-2">
+                      <i class="bi bi-exclamation-triangle me-1"></i>
+                      Mezcla unidades de medida. Únelos solo si el precio se refiere a lo mismo (por ejemplo, la misma presentación).
+                    </div>
+                  }
+                  <div class="d-grid gap-2 d-sm-flex justify-content-sm-end">
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                            [disabled]="procesando() !== null" (click)="descartarSugerencia(s)">
+                      <i class="bi bi-x-lg"></i> No son el mismo
+                    </button>
+                    <button type="button" class="btn btn-sm btn-primary d-inline-flex align-items-center justify-content-center gap-2"
+                            [disabled]="procesando() !== null || variantesAUnir(s).length === 0" (click)="unirSugerencia(s)">
+                      @if (procesando() === claveSugerencia(s)) { <span class="spinner-border spinner-border-sm"></span> }
+                      <i class="bi bi-intersect"></i>
+                      Unir {{ variantesAUnir(s).length + 1 }} productos
+                    </button>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </ng-template>
+    </li>
+
+    <!-- Unir manualmente -->
+    <li ngbNavItem="manual">
+      <button ngbNavLink class="w-100 text-start text-sm-center"><i class="bi bi-hand-index me-1"></i> Unir manualmente</button>
+      <ng-template ngbNavContent>
+        @if (!supplierId()) {
+          <app-nota-guia icono="bi-funnel" titulo="Primero elige un proveedor">
+            Solo se pueden unir productos del mismo proveedor. Elige uno arriba para ver todos sus productos.
+          </app-nota-guia>
+        } @else {
+          <app-nota-guia class="d-block mb-3" icono="bi-hand-index" titulo="Unir a mano"
+                         [consejos]="['Marca con Principal el producto que quieres conservar y con Variante los que son el mismo.',
+                                      'Si un producto ya tiene variantes y lo unes a otro, sus variantes pasan al nuevo principal.']">
+          </app-nota-guia>
+
+          <!-- Selección actual -->
+          <div class="card border-primary bg-dark-subtle shadow-sm mb-3">
+            <div class="card-body">
+              <div class="small text-secondary mb-1">Producto principal</div>
+              @if (seleccionManual().principal; as principal) {
+                <div class="fw-semibold text-break mb-2">
+                  {{ principal.name }}
+                  <span class="small text-secondary fw-normal">· por {{ principal.unitOfMeasure | unidadMedida | lowercase }}</span>
+                </div>
+              } @else {
+                <div class="text-secondary fst-italic mb-2">Ninguno todavía</div>
+              }
+
+              <div class="small text-secondary mb-1">Variantes que se van a unir ({{ seleccionManual().variantes.length }})</div>
+              @if (seleccionManual().variantes.length > 0) {
+                <div class="d-flex flex-wrap gap-1 mb-2">
+                  @for (v of seleccionManual().variantes; track v.key) {
+                    <span class="badge bg-dark border border-secondary text-light fw-normal text-wrap text-start d-inline-flex align-items-center gap-1">
+                      <span class="text-break">{{ v.name }}</span>
+                      <button type="button" class="btn-close btn-close-white" style="font-size: .5rem;"
+                              [attr.aria-label]="'Quitar ' + v.name" (click)="alternarVarianteManual(v.key)"></button>
+                    </span>
+                  }
+                </div>
+              } @else {
+                <div class="text-secondary fst-italic mb-2">Ninguna todavía</div>
+              }
+
+              @if (unidadesDistintasManual()) {
+                <div class="form-check small text-warning mb-2">
+                  <input class="form-check-input" type="checkbox" id="confirmaUnidades"
+                         [ngModel]="confirmaUnidades()" (ngModelChange)="confirmaUnidades.set($event)">
+                  <label class="form-check-label" for="confirmaUnidades">
+                    Hay unidades de medida distintas. Confirmo que los precios se refieren a lo mismo.
+                  </label>
+                </div>
+              }
+
+              <div class="d-grid d-sm-flex justify-content-sm-end">
+                <button type="button" class="btn btn-sm btn-primary d-inline-flex align-items-center justify-content-center gap-2"
+                        [disabled]="!puedeUnirManual() || procesando() !== null" (click)="unirManual()">
+                  @if (procesando() === 'manual') { <span class="spinner-border spinner-border-sm"></span> }
+                  <i class="bi bi-intersect"></i> Unir
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Productos del proveedor -->
+          <div class="card border-secondary bg-dark-subtle shadow-sm">
+            <div class="card-header border-secondary">
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-search"></i></span>
+                <input type="search" class="form-control bg-dark text-light border-secondary" placeholder="Buscar por nombre o código"
+                       aria-label="Buscar producto" [ngModel]="filtroManual()" (ngModelChange)="filtroManual.set($event)">
+              </div>
+            </div>
+            @if (isLoadingProductos()) {
+              <div class="text-center py-4 text-secondary small">
+                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                Cargando productos...
+              </div>
+            } @else {
+              <ul class="list-group list-group-flush overflow-auto" style="max-height: 520px;">
+                @for (p of productosFiltrados(); track p.key; let mi = $index) {
+                  <li class="list-group-item bg-transparent border-secondary d-flex gap-3 align-items-start">
+                    <div class="d-flex flex-column gap-1 flex-shrink-0 small pt-1">
+                      <div class="form-check mb-0">
+                        <input class="form-check-input" type="radio" name="principalManual" [id]="'mp-' + mi"
+                               [checked]="principalManual() === p.key" (change)="elegirPrincipalManual(p.key)">
+                        <label class="form-check-label" [for]="'mp-' + mi">Principal</label>
+                      </div>
+                      <div class="form-check mb-0">
+                        <input class="form-check-input" type="checkbox" [id]="'mv-' + mi"
+                               [checked]="variantesManual().includes(p.key)" [disabled]="principalManual() === p.key"
+                               (change)="alternarVarianteManual(p.key)">
+                        <label class="form-check-label" [for]="'mv-' + mi">Variante</label>
+                      </div>
+                    </div>
+                    <div class="flex-grow-1" style="min-width: 0;">
+                      <div class="fw-semibold text-break">
+                        {{ p.name }}
+                        @if (p.variants > 0) {
+                          <span class="badge bg-info-subtle text-info-emphasis fw-normal ms-1">+{{ p.variants }} {{ p.variants === 1 ? 'variante' : 'variantes' }}</span>
+                        }
+                      </div>
+                      <div class="small text-secondary text-break">
+                        <span class="font-monospace">{{ p.ref }}</span> · por {{ p.unitOfMeasure | unidadMedida | lowercase }} ·
+                        {{ p.purchases }} {{ p.purchases === 1 ? 'compra' : 'compras' }} ·
+                        {{ p.firstDate | fechaDte }} a {{ p.lastDate | fechaDte }} ·
+                        último {{ p.lastPrice | currency:'USD':'symbol':'1.2-4' }}
+                      </div>
+                    </div>
+                  </li>
+                } @empty {
+                  <li class="list-group-item bg-transparent border-secondary text-center text-secondary small py-4">
+                    Ningún producto coincide con la búsqueda.
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      </ng-template>
+    </li>
+
+    <!-- Uniones hechas -->
+    <li ngbNavItem="uniones">
+      <button ngbNavLink class="w-100 text-start text-sm-center">
+        <i class="bi bi-diagram-3 me-1"></i> Uniones hechas
+        <span class="badge bg-secondary ms-1">{{ uniones().length }}</span>
+      </button>
+      <ng-template ngbNavContent>
+        @if (isLoadingUniones() && uniones().length === 0) {
+          <div class="text-center py-5 text-secondary small">
+            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+            Cargando uniones...
+          </div>
+        } @else if (uniones().length === 0) {
+          <div class="card border-secondary bg-dark-subtle">
+            <div class="card-body text-center text-secondary py-5">
+              <i class="bi bi-diagram-3 fs-2 d-block mb-2"></i>
+              Todavía no hay productos unidos{{ supplierId() ? ' de este proveedor' : '' }}.
+            </div>
+          </div>
+        } @else {
+          <app-nota-guia class="d-block mb-3" icono="bi-arrow-counterclockwise" titulo="Se puede deshacer">
+            Separar una variante la devuelve a ser un producto aparte, con su propio historial. No se pierde nada.
+          </app-nota-guia>
+
+          <div class="d-flex flex-column gap-3" [class.opacity-50]="isLoadingUniones()">
+            @for (u of uniones(); track u.product.key) {
+              <div class="card border-secondary bg-dark-subtle shadow-sm">
+                <div class="card-header border-secondary">
+                  <div class="small text-secondary text-break">{{ u.supplierName }}</div>
+                  <a [routerLink]="['/compras/productos/detalle']" [queryParams]="queryProducto(u.product.key)"
+                     class="link-light fw-semibold text-break">{{ u.product.name }}</a>
+                  <div class="small text-secondary">
+                    Principal · por {{ u.product.unitOfMeasure | unidadMedida | lowercase }} ·
+                    {{ u.product.purchases }} {{ u.product.purchases === 1 ? 'compra propia' : 'compras propias' }}
+                  </div>
+                </div>
+                <ul class="list-group list-group-flush">
+                  @for (v of u.variants; track v.key) {
+                    <li class="list-group-item bg-transparent border-secondary d-flex flex-column flex-sm-row gap-2 align-items-sm-center">
+                      <div class="flex-grow-1" style="min-width: 0;">
+                        <div class="text-break"><i class="bi bi-arrow-return-right text-secondary me-1"></i>{{ v.name }}</div>
+                        <div class="small text-secondary text-break">
+                          <span class="font-monospace">{{ v.ref }}</span> · por {{ v.unitOfMeasure | unidadMedida | lowercase }} ·
+                          {{ v.purchases }} {{ v.purchases === 1 ? 'compra' : 'compras' }} ·
+                          unida por {{ v.createdBy }} el {{ v.createdAt | date:'dd/MM/yy' }}
+                        </div>
+                      </div>
+                      <button type="button" class="btn btn-sm btn-outline-warning flex-shrink-0 d-inline-flex align-items-center justify-content-center gap-2"
+                              [disabled]="procesando() !== null" (click)="separar(v, confirmarSeparar)">
+                        @if (procesando() === v.key) { <span class="spinner-border spinner-border-sm"></span> }
+                        <i class="bi bi-scissors"></i> Separar
+                      </button>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+          </div>
+        }
+      </ng-template>
+    </li>
+  </ul>
+
+  <div [ngbNavOutlet]="nav" class="mb-4"></div>
+</div>
+
+<!-- Confirmación para separar una variante -->
+<ng-template #confirmarSeparar let-modal>
+  <div data-bs-theme="dark">
+    <div class="modal-header bg-dark text-light border-secondary">
+      <h5 class="modal-title fw-bold"><i class="bi bi-scissors me-2"></i>Separar variante</h5>
+      <button type="button" class="btn-close btn-close-white" aria-label="Close" (click)="modal.dismiss()"></button>
+    </div>
+    <div class="modal-body p-4 bg-dark text-light">
+      Sus compras dejarán de sumarse al producto principal y volverá a aparecer como un producto aparte. Puedes volver a unirlo después.
+    </div>
+    <div class="modal-footer bg-dark border-secondary">
+      <button type="button" class="btn btn-outline-secondary" (click)="modal.dismiss()">Cancelar</button>
+      <button type="button" class="btn btn-warning" (click)="modal.close('confirmar')">Separar</button>
+    </div>
+  </div>
+</ng-template>

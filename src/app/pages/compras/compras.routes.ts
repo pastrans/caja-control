@@ -29,6 +29,10 @@ export const COMPRAS_ROUTES: Routes = [
     loadComponent: () => import('./productos/productos.component').then(m => m.ProductosComponent)
   },
   {
+    path: 'productos/variantes',
+    loadComponent: () => import('./variantes/variantes.component').then(m => m.VariantesComponent)
+  },
+  {
     // ?key=supplierId:unitOfMeasure:código (el código puede traer '/', así que no va en la ruta)
     path: 'productos/detalle',
     loadComponent: () => import('./producto-detalle/producto-detalle.component').then(m => m.ProductoDetalleComponent)

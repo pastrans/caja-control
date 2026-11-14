@@ -9,10 +9,30 @@
         }
       </p>
     </div>
-    <button class="btn btn-outline-light" (click)="cargarProductos()">
-      <i class="bi bi-arrow-clockwise"></i> Refrescar
-    </button>
+    <div class="d-grid gap-2 d-sm-flex">
+      <a class="btn btn-outline-info" routerLink="/compras/productos/variantes" [queryParams]="{ supplierId: supplierId() }">
+        <i class="bi bi-intersect"></i> Unir variantes
+      </a>
+      <button class="btn btn-outline-light" (click)="cargarProductos()">
+        <i class="bi bi-arrow-clockwise"></i> Refrescar
+      </button>
+    </div>
   </div>
+
+  <app-nota-guia class="d-block mb-3" titulo="Cómo leer esta pantalla" [consejos]="consejosGuia"></app-nota-guia>
+
+  @if (sugerenciasPendientes() > 0) {
+    <div class="alert alert-info small d-flex flex-column flex-sm-row gap-2 align-items-sm-center" role="status">
+      <span class="flex-grow-1">
+        <i class="bi bi-magic me-1"></i>
+        Hay {{ sugerenciasPendientes() }} {{ sugerenciasPendientes() === 1 ? 'grupo de productos que parece' : 'grupos de productos que parecen' }}
+        el mismo con otro nombre o código. Unirlos junta su historial de precios.
+      </span>
+      <a class="btn btn-sm btn-info flex-shrink-0" routerLink="/compras/productos/variantes" [queryParams]="{ supplierId: supplierId() }">
+        Revisar
+      </a>
+    </div>
+  }
 
   @if (errorMessage()) {
     <div class="alert alert-danger alert-dismissible fade show small" role="alert">
@@ -139,6 +159,12 @@
               <tr>
                 <td class="text-wrap" style="min-width: 240px; max-width: 360px;">
                   <a [routerLink]="['/compras/productos/detalle']" [queryParams]="queryDetalle(p)" class="link-light fw-semibold">{{ p.name }}</a>
+                  @if (p.variants > 0) {
+                    <span class="badge bg-info-subtle text-info-emphasis fw-normal ms-1" container="body"
+                          [ngbTooltip]="'Incluye las compras de ' + p.variants + (p.variants === 1 ? ' variante unida' : ' variantes unidas')">
+                      +{{ p.variants }} {{ p.variants === 1 ? 'variante' : 'variantes' }}
+                    </span>
+                  }
                   <div class="small text-secondary text-truncate" [title]="p.supplierName">
                     <span class="font-monospace">{{ p.ref }}</span> · {{ p.supplierName }}
                   </div>
