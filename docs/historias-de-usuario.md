@@ -10,7 +10,7 @@ Backlog generado a partir del análisis del frontend (22/10/2026). Cada historia
 | US-01 | No abrir una caja nueva por un error de conexión | 🔴 | Hecha |
 | US-02 | Cerrar sesión automáticamente al expirar el token | 🔴 | Hecha |
 | US-03 | Poder cerrar una caja con $0 en efectivo | 🔴 | Hecha |
-| US-04 | Cálculos de dinero exactos y validados por el servidor | 🔴 | Pendiente |
+| US-04 | Cálculos de dinero exactos y validados por el servidor | 🔴 | Hecha |
 | US-05 | Configuración de entornos clara y sin archivos generados en git | 🟡 | Pendiente |
 | US-06 | Carga inicial más rápida (lazy loading) | 🟡 | Pendiente |
 | US-07 | Ver todos los empleados al registrar un cobro | 🟡 | Pendiente |
@@ -86,7 +86,8 @@ Backlog generado a partir del análisis del frontend (22/10/2026). Cada historia
 ### Notas técnicas
 - Afecta a [cierre-caja.component.ts](../src/app/components/cierre-caja/cierre-caja.component.ts) (`reduce` de transacciones y movimientos), a [caja.component.ts](../src/app/pages/caja/caja.component.ts) (`totalModal`, `changeReturned`) y a [historial.component.ts](../src/app/pages/historial/historial.component.ts).
 - Crear un helper compartido en `utils/` (por ejemplo `money.utils.ts`) con `sumar`, `restar` y `aCentavos`.
-- Requiere cambios en el backend (`caja-api`, endpoint `POST /cash-registers/close`).
+- ~~Requiere cambios en el backend~~: `POST /cash-registers/close` ya recalcula los totales con `CashCalculatorHelper` y rechaza el cierre con 400 (`<campo> mismatch`) si no coinciden. El frontend muestra ese caso como "los totales cambiaron" y pide recargar la caja.
+- Implementado en [money.utils.ts](../src/app/utils/money.utils.ts). Se comprobó con 20 000 cierres aleatorios que el cálculo en centavos da los mismos valores que el backend.
 
 ---
 

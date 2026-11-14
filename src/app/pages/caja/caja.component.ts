@@ -12,6 +12,7 @@ import { CajaService, TransactionPayload } from '../../services/caja.service';
 import { EmpleadosService } from '../../services/empleados.service';
 import { AppValidators } from '../../utils/app-validators';
 import { DenominationsUtils } from '../../utils/denominations.utils';
+import { MoneyUtils } from '../../utils/money.utils';
 
 @Component({
   selector: 'app-caja',
@@ -97,16 +98,13 @@ export class CajaComponent implements OnInit {
   }
 
   get totalModal(): number {
-    return this.denominationsFormArray.controls.reduce((acc, control) => {
-      const valor = control.get('valor')?.value || 0;
-      const cantidad = control.get('cantidad')?.value || 0;
-      return acc + (valor * cantidad);
-    }, 0);
+    return MoneyUtils.totalDenominaciones(this.denominationsFormArray.value);
   }
 
-  get amountToCharge() { return this.cajaForm?.get('amountToCharge')?.value || 0; }
-  get cashProvided() { return this.cajaForm?.get('cashProvided')?.value || 0; }
-  get changeReturned(): number { return Math.max(0, this.cashProvided - this.amountToCharge); }
+  // Los inputs pueden traer texto ("12.50"): se normalizan a número exacto a 2 decimales
+  get amountToCharge(): number { return MoneyUtils.aDolares(MoneyUtils.aCentavos(this.cajaForm?.get('amountToCharge')?.value)); }
+  get cashProvided(): number { return MoneyUtils.aDolares(MoneyUtils.aCentavos(this.cajaForm?.get('cashProvided')?.value)); }
+  get changeReturned(): number { return Math.max(0, MoneyUtils.restar(this.cashProvided, this.amountToCharge)); }
 
   abrirModalBilletes(content: TemplateRef<any>) {
     this.modalService.open(content, { centered: true, size: 'lg' }).result.then(
@@ -193,9 +191,9 @@ export class CajaComponent implements OnInit {
 
     const payload: TransactionPayload = {
       cashRegisterRecordId: this.activeSession!.id,
-      amountToCharge: Number(this.amountToCharge),
-      cashProvided: Number(this.cashProvided),
-      changeReturned: Number(this.changeReturned),
+      amountToCharge: this.amountToCharge,
+      cashProvided: this.cashProvided,
+      changeReturned: this.changeReturned,
       employeeId: Number(this.cajaForm.value.empleado),
       note: this.cajaForm.value.nota || '',
       denominations: denominations

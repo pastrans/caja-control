@@ -7,6 +7,7 @@ import { MonedaBilletesComponent } from '../../components/moneda-billetes/moneda
 import { CajaService, OpenCajaPayload } from '../../services/caja.service';
 import { AppValidators } from '../../utils/app-validators';
 import { DenominationsUtils } from '../../utils/denominations.utils';
+import { MoneyUtils } from '../../utils/money.utils';
 
 @Component({
   selector: 'app-abrir-caja',
@@ -72,11 +73,7 @@ export class AbrirCajaComponent implements OnInit {
   }
 
   get totalModal(): number {
-    return this.denominationsFormArray.controls.reduce((acc, control) => {
-      const valor = control.get('valor')?.value || 0;
-      const cantidad = control.get('cantidad')?.value || 0;
-      return acc + (valor * cantidad);
-    }, 0);
+    return MoneyUtils.totalDenominaciones(this.denominationsFormArray.value);
   }
 
   abrirModalBilletes(content: TemplateRef<any>) {

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { CajaRecord, CashInOutRecord, TransactionRecord } from '../../models/caja.model';
 import { NgbModal, NgbModalModule, NgbPaginationModule, NgbPopoverModule } from '@ng-bootstrap/ng-bootstrap';
 import { HistorialService } from '../../services/historial.service';
+import { MoneyUtils } from '../../utils/money.utils';
 
 @Component({
   selector: 'app-historial',
@@ -59,11 +60,11 @@ export class HistorialComponent implements OnInit {
 
   calcularTotal(movimientos: CashInOutRecord[] | undefined, tipo: 'Entrada' | 'Salida'): number {
     if (!movimientos || movimientos.length === 0) return 0;
-    return movimientos.filter(m => m.type === tipo).reduce((sum, m) => sum + m.amount, 0);
+    return MoneyUtils.sumar(movimientos.filter(m => m.type === tipo).map(m => m.amount));
   }
   calcularTotalTransacciones(transacciones: TransactionRecord[] | undefined): number {
     if (!transacciones || transacciones.length === 0) return 0;
-    return transacciones.reduce((sum, t) => sum + t.amountToCharge, 0);
+    return MoneyUtils.sumar(transacciones.map(t => t.amountToCharge));
   }
 
   abrirModal(modal: TemplateRef<unknown>, registro: CajaRecord): void {

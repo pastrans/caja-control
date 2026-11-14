@@ -7,6 +7,10 @@ import { MonedaBilletesComponent } from '../moneda-billetes/moneda-billetes.comp
 import { CajaService, CloseCajaPayload } from '../../services/caja.service';
 import { AppValidators } from '../../utils/app-validators';
 import { DenominationsUtils } from '../../utils/denominations.utils';
+import { MoneyUtils } from '../../utils/money.utils';
+
+// El backend recalcula los totales y rechaza el cierre con "<campo> mismatch" si no coinciden
+const TOTALES_DESACTUALIZADOS = /mismatch/i;
 
 @Component({
   selector: 'app-cierre-caja',
@@ -33,16 +37,17 @@ export class CierreCajaComponent implements OnInit {
   expectedCash: number = 0;
 
   ngOnInit(): void {
+    // Mismo cálculo que hace el backend al cerrar; si no coincide, rechaza el cierre
     if (this.activeSession) {
       this.openingAmount = this.activeSession.opening.cash || 0;
       this.totalTransactionsCount = this.activeSession.transactions?.length || 0;
-      this.totalTransactionsAmount = (this.activeSession.transactions || []).reduce((sum, t) => sum + t.amountToCharge, 0);
+      this.totalTransactionsAmount = MoneyUtils.sumar((this.activeSession.transactions || []).map(t => t.amountToCharge));
 
-      const inputs = (this.activeSession.cashInOut || []).filter(r => r.type === 'Entrada').reduce((sum, r) => sum + r.amount, 0);
-      const outputs = (this.activeSession.cashInOut || []).filter(r => r.type === 'Salida').reduce((sum, r) => sum + r.amount, 0);
-      this.totalInputsOutputs = inputs - outputs;
-      
-      this.expectedCash = this.openingAmount + this.totalTransactionsAmount + this.totalInputsOutputs;
+      const inputs = MoneyUtils.sumar((this.activeSession.cashInOut || []).filter(r => r.type === 'Entrada').map(r => r.amount));
+      const outputs = MoneyUtils.sumar((this.activeSession.cashInOut || []).filter(r => r.type === 'Salida').map(r => r.amount));
+      this.totalInputsOutputs = MoneyUtils.restar(inputs, outputs);
+
+      this.expectedCash = MoneyUtils.sumar([this.openingAmount, this.totalTransactionsAmount, this.totalInputsOutputs]);
     }
 
     this.registerForm = this.fb.group({
@@ -61,11 +66,12 @@ export class CierreCajaComponent implements OnInit {
 
   get denominationsFormArray(): FormArray { return this.registerForm.get('denominations') as FormArray; }
   get totalModal(): number {
-    return this.denominationsFormArray.controls.reduce((acc, control) => acc + ((control.value.valor || 0) * (control.value.cantidad || 0)), 0);
+    return MoneyUtils.totalDenominaciones(this.denominationsFormArray.value);
   }
-  get cashCount(): number { return Number(this.registerForm.get('cashCount')?.value) || 0; }
-  get difference(): number { return this.cashCount - this.expectedCash; }
-  get hasDifference(): boolean { return Math.abs(this.difference) > 0.01; }
+  get cashCount(): number { return MoneyUtils.aDolares(MoneyUtils.aCentavos(this.registerForm.get('cashCount')?.value)); }
+  get difference(): number { return MoneyUtils.restar(this.cashCount, this.expectedCash); }
+  // Con montos exactos, cualquier centavo de diferencia cuenta (el backend la registra igual)
+  get hasDifference(): boolean { return this.difference !== 0; }
   getAbs(val: number): number { return Math.abs(val); }
 
   updateNoteValidation(): void {
@@ -126,11 +132,12 @@ export class CierreCajaComponent implements OnInit {
 
     const payload: CloseCajaPayload = {
       cashRegisterRecordId: this.activeSession.id,
-      totalTransactions: Number(this.totalTransactionsAmount.toFixed(2)),
-      totalCashInOut: Number(this.totalInputsOutputs.toFixed(2)),
-      totalExpected: Number(this.expectedCash.toFixed(2)),
-      cashProvided: Number(this.cashCount.toFixed(2)),
-      difference: Number(this.difference.toFixed(2)),
+      // Calculados en centavos: ya son exactos a 2 decimales
+      totalTransactions: this.totalTransactionsAmount,
+      totalCashInOut: this.totalInputsOutputs,
+      totalExpected: this.expectedCash,
+      cashProvided: this.cashCount,
+      difference: this.difference,
       note: this.registerForm.value.closingNote?.trim() || null as any,
       denominations: this.registerForm.value.denominations
         .filter((d: any) => d.cantidad > 0)
@@ -143,7 +150,11 @@ export class CierreCajaComponent implements OnInit {
         this.activeModal.close('Close Register');
       },
       error: (err) => {
-        this.errorMessage.set(err.error?.message || 'Error al intentar cerrar la caja.');
+        const mensaje: string | undefined = err.error?.error || err.error?.message;
+        // Suele pasar si se registró un cobro o movimiento (por ejemplo, desde otro equipo) después de abrir este cierre
+        this.errorMessage.set(err.status === 400 && mensaje && TOTALES_DESACTUALIZADOS.test(mensaje)
+          ? 'Los totales de la caja cambiaron desde que abriste el cierre. Cierra esta ventana, recarga la página de Caja y vuelve a cerrar.'
+          : mensaje || 'Error al intentar cerrar la caja.');
         this.isSubmitting.set(false);
       }
     });
