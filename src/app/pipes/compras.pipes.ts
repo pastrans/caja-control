@@ -5,7 +5,8 @@ import {
   CONDICIONES_OPERACION,
   MOTIVOS_RECHAZO,
   TIPOS_DOCUMENTO,
-  formatearFechaDte
+  formatearFechaDte,
+  unidadMedida
 } from '../utils/compras.utils';
 
 // Fechas sin hora del DTE (issueDate, lastIssueDate...): YYYY-MM-DD → dd/MM/yyyy
@@ -41,5 +42,12 @@ export class MotivoRechazoPipe implements PipeTransform {
 export class AdvertenciaPipe implements PipeTransform {
   transform(value: string): string {
     return ADVERTENCIAS[value] ?? value;
+  }
+}
+
+@Pipe({ name: 'unidadMedida', standalone: true })
+export class UnidadMedidaPipe implements PipeTransform {
+  transform(value: number, formato: 'nombre' | 'corto' = 'nombre'): string {
+    return unidadMedida(value)[formato];
   }
 }

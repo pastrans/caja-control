@@ -235,3 +235,103 @@ export interface ReportRange {
   from?: string; // YYYY-MM-DD
   to?: string;   // YYYY-MM-DD
 }
+
+// ---------- Productos (análisis de precios) ----------
+
+export type PriceTrendDirection = 'up' | 'down' | 'flat';
+export type ProductSort = 'spent' | 'change' | 'trend' | 'name' | 'recent';
+export type ProductPeriod = number | 'all'; // Últimos N meses o todo el historial
+
+export interface ProductPriceTrend {
+  pctPerMonth: number;
+  slopePerMonth: number;
+  r2: number; // 0-1: qué tanto siguen los precios la línea
+  direction: PriceTrendDirection;
+  startPrice: number; // Valor de la línea en la primera compra
+  endPrice: number;   // Valor de la línea en la última compra
+}
+
+export interface ProductPriceStatsDTO {
+  key: string; // supplierId:unitOfMeasure:código
+  supplierId: number;
+  supplierName: string;
+  ref: string;
+  name: string;
+  unitOfMeasure: number;
+  purchases: number;
+  quantity: number;
+  spent: number;
+  avgPrice: number;
+  minPrice: number;
+  maxPrice: number;
+  firstDate: string;
+  firstPrice: number;
+  lastDate: string;
+  lastPrice: number;
+  previousPrice: number | null;
+  changePct: number;
+  lastChangePct: number | null;
+  trend: ProductPriceTrend | null; // null: menos de 4 compras o menos de 60 días
+}
+
+export interface ProductsTrendSummary {
+  products: number;
+  rising: number;
+  falling: number;
+  flat: number;
+  insufficient: number;
+}
+
+export interface PurchaseProductsDTO {
+  months: number | null;
+  from: string;
+  to: string;
+  supplierId: number | null;
+  summary: ProductsTrendSummary;
+  page: number;
+  limit: number;
+  total: number;
+  data: ProductPriceStatsDTO[];
+}
+
+export interface PurchaseProductFilters {
+  period?: ProductPeriod;
+  supplierId?: number;
+  search?: string;
+  sort?: ProductSort;
+  order?: 'asc' | 'desc';
+}
+
+export interface ProductPricePointDTO {
+  date: string;
+  documentId: number;
+  controlNumber: string;
+  quantity: number;
+  amount: number;
+  unitPrice: number;
+}
+
+export interface ProductPriceMonthDTO {
+  month: string; // YYYY-MM
+  purchases: number;
+  quantity: number;
+  spent: number;
+  avgPrice: number;
+  minPrice: number;
+  maxPrice: number;
+}
+
+export interface ProductPriceProjectionDTO {
+  date: string;
+  price: number;
+}
+
+export interface ProductHistoryDTO {
+  months: number | null;
+  from: string;
+  to: string;
+  product: ProductPriceStatsDTO;
+  points: ProductPricePointDTO[];
+  monthly: ProductPriceMonthDTO[];
+  projection: ProductPriceProjectionDTO[];
+}

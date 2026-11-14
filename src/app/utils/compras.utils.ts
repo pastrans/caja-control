@@ -51,3 +51,30 @@ export function formatearFechaDte(fecha: string | null | undefined): string {
 export function indiceMes(mes: string): number {
   return Number(mes.split('-')[1]) - 1;
 }
+
+// Unidades de medida del DTE (catálogo CAT-014 de Hacienda) que aparecen en las compras
+export const UNIDADES_MEDIDA: Record<number, { nombre: string; corto: string }> = {
+  36: { nombre: 'Libra', corto: 'lb' },
+  59: { nombre: 'Unidad', corto: 'u' },
+  99: { nombre: 'Otra', corto: 'u.m.' }
+};
+
+export function unidadMedida(codigo: number): { nombre: string; corto: string } {
+  return UNIDADES_MEDIDA[codigo] ?? { nombre: `Unidad ${codigo}`, corto: 'u.m.' };
+}
+
+// Periodos del análisis de precios (últimos N meses o todo el historial)
+export const PERIODOS_PRODUCTOS: { id: number | 'all'; label: string }[] = [
+  { id: 3, label: 'Últimos 3 meses' },
+  { id: 6, label: 'Últimos 6 meses' },
+  { id: 12, label: 'Últimos 12 meses' },
+  { id: 24, label: 'Últimos 24 meses' },
+  { id: 'all', label: 'Todo el historial' }
+];
+
+// Qué tan confiable es la tendencia según el R² de la regresión
+export function confianzaTendencia(r2: number): { label: string; clase: string } {
+  if (r2 >= 0.5) return { label: 'Confianza alta', clase: 'text-success' };
+  if (r2 >= 0.2) return { label: 'Confianza media', clase: 'text-warning' };
+  return { label: 'Confianza baja', clase: 'text-secondary' };
+}

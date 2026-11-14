@@ -1,0 +1,239 @@
+<div class="container-fluid mt-4" data-bs-theme="dark">
+  <a routerLink="/compras/productos" class="link-secondary small text-decoration-none d-inline-block mb-2">
+    <i class="bi bi-arrow-left"></i> Precios de productos
+  </a>
+
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-3">
+    <div>
+      <h2 class="fw-bold mb-1">{{ producto()?.name ?? 'Producto' }}</h2>
+      @if (producto(); as p) {
+        <p class="text-secondary small mb-0">
+          <span class="font-monospace">{{ p.ref }}</span> ·
+          <a [routerLink]="['/compras/proveedores', p.supplierId]" class="link-info">{{ p.supplierName }}</a> ·
+          Precio por {{ p.unitOfMeasure | unidadMedida | lowercase }}, sin IVA
+        </p>
+      }
+    </div>
+    <select class="form-select form-select-sm w-auto" aria-label="Periodo" [disabled]="isLoading()"
+            [ngModel]="periodo()" (ngModelChange)="cambiarPeriodo($event)">
+      @for (p of periodos; track p.id) {
+        <option [ngValue]="p.id">{{ p.label }}</option>
+      }
+    </select>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="alert alert-danger small" role="alert">
+      <i class="bi bi-exclamation-octagon me-1"></i> {{ errorMessage() }}
+    </div>
+  }
+
+  @if (isLoading() && !historial()) {
+    <div class="text-center py-5 text-secondary">
+      <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+      Cargando historial de precios...
+    </div>
+  }
+
+  @if (historial(); as h) {
+    @if (producto(); as p) {
+      <div [class.opacity-50]="isLoading()">
+        <!-- Qué dicen los números -->
+        <div class="alert alert-secondary small d-flex gap-2 mb-3">
+          <i class="bi bi-lightbulb fs-5"></i>
+          <div>
+            @for (frase of interpretacion(); track $index) {
+              <div>{{ frase }}</div>
+            }
+          </div>
+        </div>
+
+        <!-- Indicadores -->
+        <div class="row g-3 mb-3">
+          <div class="col-6 col-lg-3">
+            <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+              <div class="card-body">
+                <div class="text-secondary small fw-semibold text-uppercase mb-2"><i class="bi bi-tag me-1"></i> Último precio</div>
+                <div class="fs-3 fw-bold text-light text-truncate">
+                  {{ p.lastPrice | currency:'USD':'symbol':'1.2-4' }}<span class="fs-6 text-secondary fw-normal">/{{ unidad().corto }}</span>
+                </div>
+                <div class="small text-secondary">
+                  {{ p.lastDate | fechaDte }}
+                  @if (p.lastChangePct !== null && p.lastChangePct !== 0) {
+                    · <span [class.text-danger]="p.lastChangePct > 0" [class.text-success]="p.lastChangePct < 0">
+                      {{ p.lastChangePct > 0 ? '+' : '' }}{{ p.lastChangePct | number:'1.1-1' }}%
+                    </span> vs. anterior
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-lg-3">
+            <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+              <div class="card-body">
+                <div class="text-secondary small fw-semibold text-uppercase mb-2"><i class="bi bi-arrow-left-right me-1"></i> Variación del periodo</div>
+                <div class="fs-3 fw-bold" [class.text-danger]="p.changePct > 0" [class.text-success]="p.changePct < 0" [class.text-light]="p.changePct === 0">
+                  {{ p.changePct > 0 ? '+' : '' }}{{ p.changePct | number:'1.1-1' }}%
+                </div>
+                <div class="small text-secondary">
+                  Mín. {{ p.minPrice | currency:'USD':'symbol':'1.2-4' }} · Máx. {{ p.maxPrice | currency:'USD':'symbol':'1.2-4' }}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-lg-3">
+            <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+              <div class="card-body">
+                <div class="text-secondary small fw-semibold text-uppercase mb-2"><i class="bi bi-graph-up me-1"></i> Tendencia</div>
+                @if (p.trend; as t) {
+                  <div class="fs-3 fw-bold" [class.text-danger]="t.direction === 'up'" [class.text-success]="t.direction === 'down'" [class.text-light]="t.direction === 'flat'">
+                    {{ t.pctPerMonth > 0 ? '+' : '' }}{{ t.pctPerMonth | number:'1.1-2' }}%<span class="fs-6 fw-normal">/mes</span>
+                  </div>
+                  <div class="small">
+                    <span [ngClass]="confianza(t.r2).clase">{{ confianza(t.r2).label }}</span>
+                    <i class="bi bi-info-circle text-secondary ms-1" style="cursor: help;" container="body"
+                       [ngbTooltip]="'R² = ' + (t.r2 | number:'1.2-2') + '. Mide qué tanto siguen los precios la línea: cerca de 1, la siguen bien; cerca de 0, suben y bajan sin un patrón claro.'"></i>
+                  </div>
+                } @else {
+                  <div class="fs-5 fw-bold text-secondary">Sin datos suficientes</div>
+                  <div class="small text-secondary">Se necesitan 4 compras en al menos 60 días</div>
+                }
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-lg-3">
+            <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+              <div class="card-body">
+                <div class="text-secondary small fw-semibold text-uppercase mb-2"><i class="bi bi-calendar-event me-1"></i> En 3 meses</div>
+                @if (ultimaProyeccion(); as proy) {
+                  <div class="fs-3 fw-bold text-warning text-truncate">
+                    ~{{ proy.price | currency:'USD':'symbol':'1.2-4' }}<span class="fs-6 text-secondary fw-normal">/{{ unidad().corto }}</span>
+                  </div>
+                  <div class="small text-secondary">Estimado al {{ proy.date | fechaDte }} si la tendencia sigue</div>
+                } @else {
+                  <div class="fs-5 fw-bold text-secondary">—</div>
+                  <div class="small text-secondary">Requiere una tendencia</div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráfica -->
+        <div class="card border-secondary bg-dark-subtle shadow-sm mb-3">
+          <div class="card-header border-secondary d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h6 class="fw-bold mb-0">Precio por {{ unidad().nombre | lowercase }} en el tiempo</h6>
+            <span class="small text-secondary">
+              {{ p.purchases | number }} compras · {{ p.quantity | number:'1.0-2' }} {{ unidad().corto }} ·
+              {{ p.spent | currency:'USD':'symbol':'1.2-2' }} · promedio {{ p.avgPrice | currency:'USD':'symbol':'1.2-4' }}/{{ unidad().corto }}
+            </span>
+          </div>
+          <div class="card-body">
+            <app-grafica-precios
+              [puntos]="h.points"
+              [tendencia]="p.trend"
+              [proyeccion]="h.projection"
+              [unidad]="unidad().corto">
+            </app-grafica-precios>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <!-- Por mes -->
+          <div class="col-lg-5">
+            <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+              <div class="card-header border-secondary">
+                <h6 class="fw-bold mb-0">Por mes</h6>
+                <span class="small text-secondary">Precio promedio ponderado por cantidad</span>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0 table-dark text-nowrap small">
+                  <thead>
+                    <tr>
+                      <th scope="col">Mes</th>
+                      <th scope="col" class="text-end">Compras</th>
+                      <th scope="col" class="text-end">Promedio</th>
+                      <th scope="col" class="text-end">Mín. – Máx.</th>
+                      <th scope="col" class="text-end">Gasto</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (m of meses(); track m.month) {
+                      <tr>
+                        <td>{{ nombreMes(m.month) }}</td>
+                        <td class="text-end">{{ m.purchases }}</td>
+                        <td class="text-end fw-semibold">{{ m.avgPrice | currency:'USD':'symbol':'1.2-4' }}</td>
+                        <td class="text-end text-secondary">{{ m.minPrice | currency:'USD':'symbol':'1.2-4' }} – {{ m.maxPrice | currency:'USD':'symbol':'1.2-4' }}</td>
+                        <td class="text-end">{{ m.spent | currency:'USD':'symbol':'1.2-2' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Compras -->
+          <div class="col-lg-7">
+            <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+              <div class="card-header border-secondary">
+                <h6 class="fw-bold mb-0">Compras</h6>
+                <span class="small text-secondary">De la más reciente a la más antigua</span>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0 table-dark text-nowrap small">
+                  <thead>
+                    <tr>
+                      <th scope="col">Fecha</th>
+                      <th scope="col">Documento</th>
+                      <th scope="col" class="text-end">Cantidad</th>
+                      <th scope="col" class="text-end">Precio</th>
+                      <th scope="col" class="text-end">Cambio</th>
+                      <th scope="col" class="text-end">Monto</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (c of comprasVisibles(); track c.documentId) {
+                      <tr>
+                        <td>{{ c.date | fechaDte }}</td>
+                        <td class="font-monospace">
+                          <a [routerLink]="['/compras/documentos', c.documentId]" class="link-info">{{ c.controlNumber.slice(-8) }}</a>
+                        </td>
+                        <td class="text-end">{{ c.quantity | number:'1.0-2' }}</td>
+                        <td class="text-end fw-semibold">{{ c.unitPrice | currency:'USD':'symbol':'1.2-4' }}</td>
+                        <td class="text-end">
+                          @if (c.cambioPct !== null) {
+                            <span [class.text-danger]="c.cambioPct > 0" [class.text-success]="c.cambioPct < 0">
+                              {{ c.cambioPct > 0 ? '+' : '' }}{{ c.cambioPct | number:'1.1-1' }}%
+                            </span>
+                          } @else {
+                            <span class="text-secondary">—</span>
+                          }
+                        </td>
+                        <td class="text-end">{{ c.amount | currency:'USD':'symbol':'1.2-2' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              @if (compras().length > comprasPorPagina) {
+                <div class="card-footer bg-dark border-secondary d-flex justify-content-end py-2">
+                  <ngb-pagination
+                    [collectionSize]="compras().length"
+                    [page]="paginaCompras()"
+                    [pageSize]="comprasPorPagina"
+                    [maxSize]="5"
+                    [rotate]="true"
+                    (pageChange)="paginaCompras.set($event)"
+                    size="sm"
+                    class="mb-0"
+                  ></ngb-pagination>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  }
+</div>

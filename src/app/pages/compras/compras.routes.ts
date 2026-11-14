@@ -25,6 +25,15 @@ export const COMPRAS_ROUTES: Routes = [
     loadComponent: () => import('./proveedor-detalle/proveedor-detalle.component').then(m => m.ProveedorDetalleComponent)
   },
   {
+    path: 'productos',
+    loadComponent: () => import('./productos/productos.component').then(m => m.ProductosComponent)
+  },
+  {
+    // ?key=supplierId:unitOfMeasure:código (el código puede traer '/', así que no va en la ruta)
+    path: 'productos/detalle',
+    loadComponent: () => import('./producto-detalle/producto-detalle.component').then(m => m.ProductoDetalleComponent)
+  },
+  {
     path: 'reportes',
     loadComponent: () => import('./reportes/reportes.component').then(m => m.ReportesComponent)
   },

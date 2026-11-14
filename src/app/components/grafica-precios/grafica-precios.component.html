@@ -1,0 +1,63 @@
+@if (marcas().length === 0) {
+  <div class="d-flex align-items-center justify-content-center text-secondary small grafica-vacia">
+    Sin compras en este periodo
+  </div>
+} @else {
+  <div class="grafica" (mouseleave)="hovered.set(null)">
+    <svg [attr.viewBox]="'0 0 ' + W + ' ' + H" class="w-100 d-block" role="img"
+         aria-label="Precio de cada compra en el tiempo"
+         (mousemove)="onMouseMove($event)">
+      <!-- Líneas guía y eje Y -->
+      @for (e of etiquetasY(); track $index) {
+        <line class="guia" [attr.x1]="M.left" [attr.x2]="W - M.right" [attr.y1]="e.pos" [attr.y2]="e.pos" />
+        <text class="eje" [attr.x]="M.left - 8" [attr.y]="e.pos" text-anchor="end" dominant-baseline="middle">{{ e.texto }}</text>
+      }
+
+      <!-- Eje X -->
+      @for (e of etiquetasX(); track $index) {
+        <text class="eje" [attr.x]="e.pos" [attr.y]="H - 8" text-anchor="middle">{{ e.texto }}</text>
+      }
+
+      <!-- Precio de cada compra -->
+      <polyline class="precios" [attr.points]="lineaPrecios()" />
+
+      <!-- Tendencia y proyección -->
+      @if (lineaTendencia(); as t) {
+        <line class="tendencia" [attr.x1]="t.x1" [attr.y1]="t.y1" [attr.x2]="t.x2" [attr.y2]="t.y2" />
+      }
+      @if (lineaProyeccion()) {
+        <polyline class="proyeccion" [attr.points]="lineaProyeccion()" />
+        @for (p of marcasProyeccion(); track $index) {
+          <circle class="punto-proyeccion" [attr.cx]="p.x" [attr.cy]="p.y" r="4" />
+        }
+      }
+
+      @for (m of marcas(); track m.punto.documentId) {
+        <circle class="punto" [class.activo]="hovered() === m" [attr.cx]="m.x" [attr.cy]="m.y" [attr.r]="hovered() === m ? 5 : 3" />
+      }
+
+      @if (hovered(); as h) {
+        <line class="cursor" [attr.x1]="h.x" [attr.x2]="h.x" [attr.y1]="M.top" [attr.y2]="H - M.bottom" />
+      }
+    </svg>
+
+    @if (hovered(); as h) {
+      <div class="grafica-tooltip card border-secondary shadow small"
+           [style.left.%]="tooltipLeft(h)" [style.top.%]="tooltipTop(h)">
+        <div class="text-secondary">{{ fecha(h.punto.date) }}</div>
+        <div class="fw-bold text-light">{{ h.punto.unitPrice | currency:'USD':'symbol':'1.2-4' }}/{{ unidad }}</div>
+        <div class="text-secondary">{{ h.punto.quantity | number:'1.0-2' }} {{ unidad }} · {{ h.punto.amount | currency:'USD':'symbol':'1.2-2' }}</div>
+      </div>
+    }
+  </div>
+
+  <div class="d-flex flex-wrap gap-3 small text-secondary mt-2" aria-label="Leyenda">
+    <span class="d-inline-flex align-items-center gap-1"><span class="leyenda-punto"></span> Precio de cada compra</span>
+    @if (lineaTendencia()) {
+      <span class="d-inline-flex align-items-center gap-1"><span class="leyenda-linea"></span> Tendencia</span>
+    }
+    @if (lineaProyeccion()) {
+      <span class="d-inline-flex align-items-center gap-1"><span class="leyenda-linea punteada"></span> Proyección si la tendencia sigue igual</span>
+    }
+  </div>
+}

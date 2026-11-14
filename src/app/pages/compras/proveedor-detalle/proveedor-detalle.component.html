@@ -26,9 +26,14 @@
           <p class="text-secondary small mb-0">{{ p.commercialName }}</p>
         }
       </div>
-      <a class="btn btn-outline-light" routerLink="/compras/documentos" [queryParams]="{ supplierId: p.id }">
-        <i class="bi bi-files"></i> Ver documentos
-      </a>
+      <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-outline-light" routerLink="/compras/productos" [queryParams]="{ supplierId: p.id }">
+          <i class="bi bi-box-seam"></i> Precios de sus productos
+        </a>
+        <a class="btn btn-outline-light" routerLink="/compras/documentos" [queryParams]="{ supplierId: p.id }">
+          <i class="bi bi-files"></i> Ver documentos
+        </a>
+      </div>
     </div>
 
     <!-- Datos -->

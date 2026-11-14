@@ -1,0 +1,212 @@
+<div class="container-fluid mt-4" data-bs-theme="dark">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h2 class="fw-bold mb-1">Precios de productos</h2>
+      <p class="text-secondary small mb-0">
+        Cómo cambian los precios de lo que compras, según tus créditos fiscales
+        @if (rango(); as r) {
+          · {{ r.from | fechaDte }} a {{ r.to | fechaDte }}
+        }
+      </p>
+    </div>
+    <button class="btn btn-outline-light" (click)="cargarProductos()">
+      <i class="bi bi-arrow-clockwise"></i> Refrescar
+    </button>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="alert alert-danger alert-dismissible fade show small" role="alert">
+      <i class="bi bi-exclamation-octagon me-1"></i> {{ errorMessage() }}
+      <button type="button" class="btn-close" (click)="errorMessage.set(null)" aria-label="Close"></button>
+    </div>
+  }
+
+  <!-- Resumen de tendencias (todos los productos del filtro, no solo la página) -->
+  @if (resumen(); as s) {
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-lg">
+        <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-secondary small fw-semibold text-uppercase mb-2"><i class="bi bi-box-seam me-1"></i> Productos</div>
+            <div class="fs-3 fw-bold text-light">{{ s.products | number }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-lg">
+        <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-secondary small fw-semibold text-uppercase mb-2"><i class="bi bi-graph-up-arrow me-1"></i> Subiendo</div>
+            <div class="fs-3 fw-bold text-danger">{{ s.rising | number }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-lg">
+        <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-secondary small fw-semibold text-uppercase mb-2"><i class="bi bi-graph-down-arrow me-1"></i> Bajando</div>
+            <div class="fs-3 fw-bold text-success">{{ s.falling | number }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-lg">
+        <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-secondary small fw-semibold text-uppercase mb-2"><i class="bi bi-dash-lg me-1"></i> Estables</div>
+            <div class="fs-3 fw-bold text-light">{{ s.flat | number }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-lg">
+        <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-secondary small fw-semibold text-uppercase mb-2"><i class="bi bi-question-circle me-1"></i> Pocas compras</div>
+            <div class="fs-3 fw-bold text-secondary">{{ s.insufficient | number }}</div>
+            <div class="small text-secondary">Menos de 4 compras o 60 días: sin tendencia</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Filtros -->
+  <div class="card border-secondary shadow-sm mb-3 bg-dark-subtle">
+    <div class="card-body py-2 d-flex flex-wrap align-items-center gap-2">
+      <div class="input-group input-group-sm" style="max-width: 260px;">
+        <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-search"></i></span>
+        <input type="search" class="form-control bg-dark text-light border-secondary" placeholder="Producto o código"
+               aria-label="Buscar producto"
+               [ngModel]="busqueda()" (ngModelChange)="onBuscar($event)">
+      </div>
+
+      <select class="form-select form-select-sm w-auto" style="max-width: 240px;" aria-label="Proveedor"
+              [ngModel]="supplierId()" (ngModelChange)="cambiarProveedor($event)">
+        <option [ngValue]="null">Todos los proveedores</option>
+        @for (p of proveedores(); track p.id) {
+          <option [ngValue]="p.id">{{ p.name }}</option>
+        }
+      </select>
+
+      <select class="form-select form-select-sm w-auto" aria-label="Periodo"
+              [ngModel]="periodo()" (ngModelChange)="cambiarPeriodo($event)">
+        @for (p of periodos; track p.id) {
+          <option [ngValue]="p.id">{{ p.label }}</option>
+        }
+      </select>
+
+      <div class="d-flex align-items-center gap-2 ms-md-auto">
+        <label class="small text-secondary text-nowrap" for="ordenProductos">Ordenar por</label>
+        <select id="ordenProductos" class="form-select form-select-sm w-auto"
+                [ngModel]="orden().id" (ngModelChange)="cambiarOrden($event)">
+          @for (o of ordenes; track o.id) {
+            <option [ngValue]="o.id">{{ o.label }}</option>
+          }
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-secondary bg-dark-subtle">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 table-dark text-nowrap">
+        <thead>
+          <tr>
+            <th scope="col">Producto</th>
+            <th scope="col" class="text-end">Compras</th>
+            <th scope="col" class="text-end">Último precio</th>
+            <th scope="col" class="text-end">
+              Variación
+              <i class="bi bi-info-circle text-secondary ms-1" style="cursor: help;" container="body"
+                 ngbTooltip="Última compra contra la primera del periodo"></i>
+            </th>
+            <th scope="col" class="text-end">
+              Tendencia
+              <i class="bi bi-info-circle text-secondary ms-1" style="cursor: help;" container="body"
+                 ngbTooltip="Cuánto sube o baja el precio al mes, según todas las compras del periodo"></i>
+            </th>
+            <th scope="col" class="text-end">Gasto</th>
+          </tr>
+        </thead>
+        <tbody [class.opacity-50]="isLoading() && productos().length > 0">
+          @if (isLoading() && productos().length === 0) {
+            <tr>
+              <td colspan="6" class="text-center py-5 text-secondary">
+                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                Analizando precios...
+              </td>
+            </tr>
+          } @else {
+            @for (p of productos(); track p.key) {
+              <tr>
+                <td class="text-wrap" style="min-width: 240px; max-width: 360px;">
+                  <a [routerLink]="['/compras/productos/detalle']" [queryParams]="queryDetalle(p)" class="link-light fw-semibold">{{ p.name }}</a>
+                  <div class="small text-secondary text-truncate" [title]="p.supplierName">
+                    <span class="font-monospace">{{ p.ref }}</span> · {{ p.supplierName }}
+                  </div>
+                </td>
+                <td class="text-end">{{ p.purchases | number }}</td>
+                <td class="text-end">
+                  <span class="fw-semibold">{{ p.lastPrice | currency:'USD':'symbol':'1.2-4' }}</span><span class="small text-secondary">/{{ p.unitOfMeasure | unidadMedida:'corto' }}</span>
+                  <div class="small text-secondary">{{ p.lastDate | fechaDte }}</div>
+                </td>
+                <td class="text-end">
+                  @if (p.purchases > 1) {
+                    <span [class.text-danger]="p.changePct > 0" [class.text-success]="p.changePct < 0" [class.text-secondary]="p.changePct === 0">
+                      {{ p.changePct > 0 ? '+' : '' }}{{ p.changePct | number:'1.1-1' }}%
+                    </span>
+                    <div class="small text-secondary">desde {{ p.firstPrice | currency:'USD':'symbol':'1.2-4' }}</div>
+                  } @else {
+                    <span class="text-secondary">—</span>
+                  }
+                </td>
+                <td class="text-end">
+                  @if (p.trend; as t) {
+                    <span [class.text-danger]="t.direction === 'up'" [class.text-success]="t.direction === 'down'" [class.text-secondary]="t.direction === 'flat'">
+                      <i class="bi" [class.bi-arrow-up-right]="t.direction === 'up'" [class.bi-arrow-down-right]="t.direction === 'down'" [class.bi-arrow-right]="t.direction === 'flat'"></i>
+                      {{ t.pctPerMonth > 0 ? '+' : '' }}{{ t.pctPerMonth | number:'1.1-2' }}%/mes
+                    </span>
+                    <div class="small" [ngClass]="confianza(t.r2).clase">{{ confianza(t.r2).label }}</div>
+                  } @else {
+                    <span class="small text-secondary">Pocas compras</span>
+                  }
+                </td>
+                <td class="text-end">{{ p.spent | currency:'USD':'symbol':'1.2-2' }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="text-center text-secondary py-5">
+                  <i class="bi bi-box-seam display-6 d-block mb-2"></i>
+                  @if (busqueda() || supplierId()) {
+                    Ningún producto coincide con los filtros en este periodo.
+                  } @else {
+                    No hay compras en este periodo. Los productos salen de los créditos fiscales importados.
+                  }
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (totalRecords() > 0) {
+      <div class="card-footer bg-dark border-secondary d-flex justify-content-between align-items-center py-3">
+        <span class="small text-secondary">
+          Total: <strong>{{ totalRecords() | number }}</strong> productos
+        </span>
+        @if (totalRecords() > pageSize()) {
+          <ngb-pagination
+            [collectionSize]="totalRecords()"
+            [page]="currentPage()"
+            [pageSize]="pageSize()"
+            [maxSize]="5"
+            [rotate]="true"
+            [boundaryLinks]="true"
+            (pageChange)="onPageChange($event)"
+            size="sm"
+            class="mb-0"
+          ></ngb-pagination>
+        }
+      </div>
+    }
+  </div>
+</div>

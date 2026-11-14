@@ -1,0 +1,24 @@
+.grafica { position: relative; }
+.grafica-vacia { height: 240px; }
+
+.guia { stroke: var(--bs-border-color-translucent); stroke-width: 1; }
+.eje { fill: var(--bs-secondary-color); font-size: 12px; }
+
+.precios { fill: none; stroke: var(--bs-info); stroke-opacity: .35; stroke-width: 1.5; }
+.punto { fill: var(--bs-info); }
+.punto.activo { stroke: var(--bs-body-bg); stroke-width: 2; }
+
+.tendencia { stroke: var(--bs-warning); stroke-width: 2.5; }
+.proyeccion { fill: none; stroke: var(--bs-warning); stroke-width: 2.5; stroke-dasharray: 6 5; }
+.punto-proyeccion { fill: var(--bs-body-bg); stroke: var(--bs-warning); stroke-width: 2; }
+
+.cursor { stroke: var(--bs-secondary-color); stroke-width: 1; stroke-dasharray: 3 3; }
+
+.grafica-tooltip {
+  position: absolute; transform: translate(-50%, calc(-100% - 10px));
+  padding: .4rem .6rem; pointer-events: none; white-space: nowrap; z-index: 2;
+}
+
+.leyenda-punto { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--bs-info); }
+.leyenda-linea { display: inline-block; width: 18px; border-top: 2.5px solid var(--bs-warning); }
+.leyenda-linea.punteada { border-top-style: dashed; }
