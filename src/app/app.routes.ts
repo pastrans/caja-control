@@ -30,6 +30,7 @@ export const routes: Routes = [
     path: '',
     component: MainLayoutComponent,
     canActivate: [authGuard],
+    canActivateChild: [authGuard], // Revisa la sesión en cada navegación entre páginas, no solo al entrar
     children: [
       {
         path: 'inicio',

@@ -52,6 +52,18 @@ export class AuthService {
     return this.storageService.getItem(this.TOKEN_KEY);
   }
 
+  // Lo usan los guards en cada navegación: isAuthenticated no se entera por sí solo de que el token venció
+  hasValidSession(): boolean {
+    if (!this.currentUser()) return false;
+
+    const token = this.getToken();
+    if (!token || this.isTokenExpired(token)) {
+      this.logout();
+      return false;
+    }
+    return true;
+  }
+
   hasRole(allowedRoles: string[]): boolean {
     const role = this.userRole();
     return role ? allowedRoles.includes(role) : false;
@@ -62,13 +74,32 @@ export class AuthService {
     return this.hasRole(['ADMIN']) ? '/inicio' : '/caja';
   }
 
+  // Al abrir la app, una sesión guardada con el token vencido se descarta sin llamar a la API
   private getStoredUser(): User | null {
     const rawUser = this.storageService.getItem(this.USER_KEY);
-    if (!rawUser) return null;
+    const token = this.storageService.getItem(this.TOKEN_KEY);
+    if (!rawUser || !token || this.isTokenExpired(token)) {
+      this.storageService.removeItem(this.TOKEN_KEY);
+      this.storageService.removeItem(this.USER_KEY);
+      return null;
+    }
     try {
       return JSON.parse(rawUser) as User;
     } catch {
       return null;
+    }
+  }
+
+  // Lee exp (segundos) del payload del JWT. Un token ilegible cuenta como vencido.
+  // Solo decide si la sesión sigue vigente en la UI; la firma la valida el backend
+  private isTokenExpired(token: string): boolean {
+    try {
+      const payload = token.split('.')[1];
+      const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+      const { exp } = JSON.parse(json) as { exp?: number };
+      return typeof exp !== 'number' || exp * 1000 <= Date.now();
+    } catch {
+      return true;
     }
   }
 }
