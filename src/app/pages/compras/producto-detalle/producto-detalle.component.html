@@ -169,6 +169,9 @@
             <span class="small text-secondary">
               {{ p.purchases | number }} compras · {{ p.quantity | number:'1.0-2' }} {{ unidad().corto }} ·
               {{ p.spent | currency:'USD':'symbol':'1.2-2' }} · promedio {{ p.avgPrice | currency:'USD':'symbol':'1.2-4' }}/{{ unidad().corto }}
+              @if (p.returns > 0) {
+                · <span class="text-danger">devuelto {{ p.returnedAmount | currency:'USD':'symbol':'1.2-2' }}</span>
+              }
             </span>
           </div>
           <div class="card-body">
@@ -197,7 +200,7 @@
                       <th scope="col" class="text-end">Compras</th>
                       <th scope="col" class="text-end">Promedio</th>
                       <th scope="col" class="text-end">Mín. – Máx.</th>
-                      <th scope="col" class="text-end">Gasto</th>
+                      <th scope="col" class="text-end">Gasto neto</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -207,7 +210,12 @@
                         <td class="text-end">{{ m.purchases }}</td>
                         <td class="text-end fw-semibold">{{ m.avgPrice | currency:'USD':'symbol':'1.2-4' }}</td>
                         <td class="text-end text-secondary">{{ m.minPrice | currency:'USD':'symbol':'1.2-4' }} – {{ m.maxPrice | currency:'USD':'symbol':'1.2-4' }}</td>
-                        <td class="text-end">{{ m.spent | currency:'USD':'symbol':'1.2-2' }}</td>
+                        <td class="text-end">
+                          {{ m.spent | currency:'USD':'symbol':'1.2-2' }}
+                          @if (m.returnedAmount > 0) {
+                            <div class="text-danger" style="font-size: .75rem;">−{{ m.returnedAmount | currency:'USD':'symbol':'1.2-2' }} devuelto</div>
+                          }
+                        </td>
                       </tr>
                     }
                   </tbody>
@@ -233,6 +241,7 @@
                       <th scope="col" class="text-end">Precio</th>
                       <th scope="col" class="text-end">Cambio</th>
                       <th scope="col" class="text-end">Monto</th>
+                      <th scope="col">Devolución</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -254,6 +263,22 @@
                           }
                         </td>
                         <td class="text-end">{{ c.amount | currency:'USD':'symbol':'1.2-2' }}</td>
+                        <td>
+                          @if (c.returnStatus === 'none') {
+                            <span class="text-secondary">—</span>
+                          } @else {
+                            <span class="badge" [ngClass]="c.returnStatus === 'total' ? 'bg-danger' : 'border border-danger text-danger'">
+                              {{ c.returnStatus === 'total' ? 'Devuelta' : 'Parcial' }}
+                            </span>
+                            @for (d of c.returns; track d.documentId) {
+                              <div class="text-secondary" style="font-size: .75rem;">
+                                <a [routerLink]="['/compras/documentos', d.documentId]" class="link-danger">{{ d.date | fechaDte }}</a>:
+                                @if (d.type === 'price') { rebaja } @else { {{ d.quantity | number:'1.0-2' }} {{ unidad().corto }} }
+                                · {{ d.amount | currency:'USD':'symbol':'1.2-2' }}
+                              </div>
+                            }
+                          }
+                        </td>
                       </tr>
                     }
                   </tbody>

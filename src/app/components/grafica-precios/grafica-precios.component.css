@@ -12,6 +12,13 @@
 .proyeccion { fill: none; stroke: var(--bs-warning); stroke-width: 2.5; stroke-dasharray: 6 5; }
 .punto-proyeccion { fill: var(--bs-body-bg); stroke: var(--bs-warning); stroke-width: 2; }
 
+/* Devoluciones: la compra queda con borde rojo (hueca si se devolvió toda) y un triángulo en la fecha de la nota */
+.punto.devuelta-parcial { stroke: var(--bs-danger); stroke-width: 2; }
+.punto.devuelta-total { fill: var(--bs-body-bg); stroke: var(--bs-danger); stroke-width: 2; }
+.devolucion { fill: var(--bs-danger); }
+.devolucion.activo { filter: brightness(1.3); }
+.enlace-devolucion { stroke: var(--bs-danger); stroke-opacity: .5; stroke-width: 1; stroke-dasharray: 2 3; }
+
 .cursor { stroke: var(--bs-secondary-color); stroke-width: 1; stroke-dasharray: 3 3; }
 
 .grafica-tooltip {
@@ -21,4 +28,9 @@
 
 .leyenda-punto { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--bs-info); }
 .leyenda-linea { display: inline-block; width: 18px; border-top: 2.5px solid var(--bs-warning); }
+.leyenda-punto.devuelta { background: var(--bs-body-bg); border: 2px solid var(--bs-danger); }
+.leyenda-triangulo {
+  display: inline-block; width: 0; height: 0;
+  border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 8px solid var(--bs-danger);
+}
 .leyenda-linea.punteada { border-top-style: dashed; }

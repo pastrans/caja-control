@@ -259,8 +259,11 @@ export interface ProductPriceStatsDTO {
   name: string;
   unitOfMeasure: number;
   purchases: number;
-  quantity: number;
-  spent: number;
+  quantity: number; // Neta: sin lo devuelto
+  spent: number;    // Neto: sin las notas de crédito sobre sus compras
+  returnedQuantity: number;
+  returnedAmount: number;
+  returns: number;  // Líneas de nota de crédito sobre sus compras
   avgPrice: number;
   minPrice: number;
   maxPrice: number;
@@ -303,20 +306,37 @@ export interface PurchaseProductFilters {
   order?: 'asc' | 'desc';
 }
 
+export type ProductReturnStatus = 'none' | 'partial' | 'total';
+
+// Línea de nota de crédito sobre una compra: devolución al mismo precio o rebaja de precio
+export interface ProductReturnDTO {
+  date: string;
+  documentId: number; // Nota de crédito
+  controlNumber: string;
+  type: 'return' | 'price';
+  quantity: number;
+  amount: number;
+}
+
 export interface ProductPricePointDTO {
   date: string;
   documentId: number;
   controlNumber: string;
-  quantity: number;
-  amount: number;
-  unitPrice: number;
+  quantity: number;  // Comprada (sin restar lo devuelto)
+  amount: number;    // Facturado
+  unitPrice: number; // Con las rebajas de precio aplicadas
+  returnStatus: ProductReturnStatus;
+  returnedQuantity: number;
+  returnedAmount: number;
+  returns: ProductReturnDTO[];
 }
 
 export interface ProductPriceMonthDTO {
   month: string; // YYYY-MM
   purchases: number;
-  quantity: number;
-  spent: number;
+  quantity: number; // Neta
+  spent: number;    // Neto
+  returnedAmount: number;
   avgPrice: number;
   minPrice: number;
   maxPrice: number;

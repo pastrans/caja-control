@@ -99,6 +99,12 @@ export class ProductoDetalleComponent implements OnInit {
         : `El precio ${verbo} ${porcentaje(p.changePct)}: de ${precio.format(p.firstPrice)} a ${precio.format(p.lastPrice)} por ${u}.`);
     }
 
+    if (p.returns > 0) {
+      const cantidad = p.returnedQuantity > 0 ? `${p.returnedQuantity.toLocaleString('es-SV', { maximumFractionDigits: 2 })} ${u}, ` : '';
+      frases.push(`Hubo ${p.returns} ${p.returns === 1 ? 'devolución' : 'devoluciones'} sobre estas compras (${cantidad}${precio.format(p.returnedAmount)}). `
+        + 'La cantidad y el gasto ya las descuentan; el precio no cambia porque se devuelve al mismo precio.');
+    }
+
     const t = p.trend;
     if (!t) {
       if (p.purchases > 1) frases.push('Con menos de 4 compras o menos de 60 días entre la primera y la última no se calcula una tendencia.');

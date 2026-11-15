@@ -1,6 +1,6 @@
 import { Component, Input, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ProductPricePointDTO, ProductPriceProjectionDTO, ProductPriceTrend } from '../../models/compras.model';
+import { ProductPricePointDTO, ProductPriceProjectionDTO, ProductPriceTrend, ProductReturnDTO } from '../../models/compras.model';
 import { MESES_CORTOS, formatearFechaDte } from '../../utils/compras.utils';
 
 // Coordenadas del SVG (viewBox): el gráfico escala al ancho del contenedor
@@ -10,7 +10,8 @@ const M = { top: 16, right: 16, bottom: 28, left: 64 };
 const MAX_ETIQUETAS_X = 8;
 
 interface Marca { x: number; y: number; }
-interface PuntoGrafica extends Marca { punto: ProductPricePointDTO; }
+// Compra, o devolución si trae `devolucion` (se dibuja en la fecha de la nota de crédito, al precio de la compra)
+interface PuntoGrafica extends Marca { punto: ProductPricePointDTO; devolucion?: ProductReturnDTO; }
 interface Etiqueta { pos: number; texto: string; }
 
 // Fechas YYYY-MM-DD a número de día (UTC) sin pasar por la zona horaria local
@@ -19,7 +20,7 @@ const dia = (fecha: string) => {
   return Date.UTC(y, m - 1, d) / 86_400_000;
 };
 
-// Precio de cada compra, línea de tendencia y proyección punteada
+// Precio de cada compra, línea de tendencia, proyección punteada y devoluciones (notas de crédito sobre una compra)
 @Component({
   selector: 'app-grafica-precios',
   standalone: true,
@@ -50,7 +51,8 @@ export class GraficaPreciosComponent {
     if (puntos.length === 0) return null;
 
     const xMin = dia(puntos[0].date);
-    const xMax = Math.max(dia(puntos[puntos.length - 1].date), ...proyeccion.map(p => dia(p.date)), xMin + 1);
+    const devoluciones = puntos.flatMap(p => p.returns.map(r => dia(r.date)));
+    const xMax = Math.max(dia(puntos[puntos.length - 1].date), ...proyeccion.map(p => dia(p.date)), ...devoluciones, xMin + 1);
 
     const precios = [
       ...puntos.map(p => p.unitPrice),
@@ -75,6 +77,30 @@ export class GraficaPreciosComponent {
   });
 
   lineaPrecios = computed(() => this.marcas().map(m => `${m.x},${m.y}`).join(' '));
+
+  // Una marca por cada nota de crédito, a la altura del precio de la compra que modifica
+  marcasDevolucion = computed<PuntoGrafica[]>(() => {
+    const e = this.escalas();
+    if (!e) return [];
+    return this.marcas().flatMap(m => m.punto.returns.map(devolucion => ({
+      punto: m.punto,
+      devolucion,
+      x: e.x(dia(devolucion.date)),
+      y: m.y
+    })));
+  });
+
+  // Triángulo hacia abajo centrado en la marca
+  triangulo(m: Marca): string {
+    return `${m.x - 5},${m.y - 4} ${m.x + 5},${m.y - 4} ${m.x},${m.y + 5}`;
+  }
+
+  // Para unir la devolución con su compra
+  marcaDeCompra(m: PuntoGrafica): PuntoGrafica | undefined {
+    return this.marcas().find(c => c.punto.documentId === m.punto.documentId);
+  }
+
+  hayDevoluciones = computed(() => this.marcasDevolucion().length > 0);
 
   lineaTendencia = computed(() => {
     const e = this.escalas();
@@ -136,7 +162,7 @@ export class GraficaPreciosComponent {
     const x = ((event.clientX - rect.left) / rect.width) * W;
 
     let cercano: PuntoGrafica | null = null;
-    for (const m of this.marcas()) {
+    for (const m of [...this.marcas(), ...this.marcasDevolucion()]) {
       if (!cercano || Math.abs(m.x - x) < Math.abs(cercano.x - x)) cercano = m;
     }
     this.hovered.set(cercano);

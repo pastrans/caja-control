@@ -195,7 +195,12 @@
                     <span class="small text-secondary">Pocas compras</span>
                   }
                 </td>
-                <td class="text-end">{{ p.spent | currency:'USD':'symbol':'1.2-2' }}</td>
+                <td class="text-end">
+                  {{ p.spent | currency:'USD':'symbol':'1.2-2' }}
+                  @if (p.returnedAmount > 0) {
+                    <div class="small text-danger">−{{ p.returnedAmount | currency:'USD':'symbol':'1.2-2' }} devuelto</div>
+                  }
+                </td>
               </tr>
             } @empty {
               <tr>

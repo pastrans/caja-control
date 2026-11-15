@@ -32,8 +32,19 @@
         }
       }
 
+      <!-- Devoluciones: línea punteada desde la compra y triángulo en la fecha de la nota de crédito -->
+      @for (d of marcasDevolucion(); track $index) {
+        @if (marcaDeCompra(d); as c) {
+          <line class="enlace-devolucion" [attr.x1]="c.x" [attr.y1]="c.y" [attr.x2]="d.x" [attr.y2]="d.y" />
+        }
+        <polygon class="devolucion" [class.activo]="hovered() === d" [attr.points]="triangulo(d)" />
+      }
+
       @for (m of marcas(); track m.punto.documentId) {
-        <circle class="punto" [class.activo]="hovered() === m" [attr.cx]="m.x" [attr.cy]="m.y" [attr.r]="hovered() === m ? 5 : 3" />
+        <circle class="punto" [class.activo]="hovered() === m"
+                [class.devuelta-total]="m.punto.returnStatus === 'total'"
+                [class.devuelta-parcial]="m.punto.returnStatus === 'partial'"
+                [attr.cx]="m.x" [attr.cy]="m.y" [attr.r]="hovered() === m ? 5 : 3" />
       }
 
       @if (hovered(); as h) {
@@ -44,9 +55,25 @@
     @if (hovered(); as h) {
       <div class="grafica-tooltip card border-secondary shadow small"
            [style.left.%]="tooltipLeft(h)" [style.top.%]="tooltipTop(h)">
-        <div class="text-secondary">{{ fecha(h.punto.date) }}</div>
-        <div class="fw-bold text-light">{{ h.punto.unitPrice | currency:'USD':'symbol':'1.2-4' }}/{{ unidad }}</div>
-        <div class="text-secondary">{{ h.punto.quantity | number:'1.0-2' }} {{ unidad }} · {{ h.punto.amount | currency:'USD':'symbol':'1.2-2' }}</div>
+        @if (h.devolucion; as d) {
+          <div class="text-danger fw-semibold">{{ d.type === 'price' ? 'Rebaja de precio' : 'Devolución' }} · {{ fecha(d.date) }}</div>
+          <div class="text-light">
+            @if (d.type === 'return') { {{ d.quantity | number:'1.0-2' }} {{ unidad }} · }
+            {{ d.amount | currency:'USD':'symbol':'1.2-2' }}
+          </div>
+          <div class="text-secondary">De la compra del {{ fecha(h.punto.date) }}</div>
+        } @else {
+          <div class="text-secondary">{{ fecha(h.punto.date) }}</div>
+          <div class="fw-bold text-light">{{ h.punto.unitPrice | currency:'USD':'symbol':'1.2-4' }}/{{ unidad }}</div>
+          <div class="text-secondary">{{ h.punto.quantity | number:'1.0-2' }} {{ unidad }} · {{ h.punto.amount | currency:'USD':'symbol':'1.2-2' }}</div>
+          @if (h.punto.returnStatus !== 'none') {
+            <div class="text-danger">
+              {{ h.punto.returnStatus === 'total' ? 'Devuelta' : 'Devuelta en parte' }}:
+              @if (h.punto.returnedQuantity > 0) { {{ h.punto.returnedQuantity | number:'1.0-2' }} {{ unidad }} · }
+              {{ h.punto.returnedAmount | currency:'USD':'symbol':'1.2-2' }}
+            </div>
+          }
+        }
       </div>
     }
   </div>
@@ -58,6 +85,10 @@
     }
     @if (lineaProyeccion()) {
       <span class="d-inline-flex align-items-center gap-1"><span class="leyenda-linea punteada"></span> Proyección si la tendencia sigue igual</span>
+    }
+    @if (hayDevoluciones()) {
+      <span class="d-inline-flex align-items-center gap-1"><span class="leyenda-punto devuelta"></span> Compra devuelta</span>
+      <span class="d-inline-flex align-items-center gap-1"><span class="leyenda-triangulo"></span> Devolución (fecha de la nota de crédito)</span>
     }
   </div>
 }
