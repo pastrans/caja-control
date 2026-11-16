@@ -8,8 +8,10 @@ import {
   ProductMergeDTO,
   ProductMergeSuggestionDTO,
   ProductPeriod,
+  ProductReturnsReportDTO,
   PurchaseProductFilters,
-  PurchaseProductsDTO
+  PurchaseProductsDTO,
+  ReportRange
 } from '../models/compras.model';
 
 // Los productos se deducen de las líneas de los créditos fiscales: no hay alta ni edición.
@@ -41,6 +43,14 @@ export class PurchaseProductsService {
     if (period !== undefined) params = params.set('months', period.toString());
 
     return this.http.get<ProductHistoryDTO>(`${this.endpoint}/history`, { params });
+  }
+
+  // Devoluciones de producto por la fecha de la nota de crédito; sin fechas, el mes en curso (como los reportes)
+  getReturns(range: ReportRange = {}, supplierId?: number): Observable<ProductReturnsReportDTO> {
+    let params = this.supplierParams(supplierId);
+    if (range.from) params = params.set('from', range.from);
+    if (range.to) params = params.set('to', range.to);
+    return this.http.get<ProductReturnsReportDTO>(`${this.endpoint}/returns`, { params });
   }
 
   // ---------- Variantes ----------

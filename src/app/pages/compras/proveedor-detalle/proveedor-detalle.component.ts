@@ -5,26 +5,32 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SuppliersService } from '../../../services/suppliers.service';
 import { PurchaseReportsService } from '../../../services/purchase-reports.service';
-import { IvaSummaryDTO, PurchaseSummaryDTO, ReportRange, SupplierDTO } from '../../../models/compras.model';
-import { FechaDtePipe } from '../../../pipes/compras.pipes';
+import { PurchaseProductsService } from '../../../services/purchase-products.service';
+import { IvaSummaryDTO, ProductReturnsReportDTO, PurchaseSummaryDTO, ReportRange, SupplierDTO } from '../../../models/compras.model';
+import { FechaDtePipe, UnidadMedidaPipe } from '../../../pipes/compras.pipes';
+import { NotaGuiaComponent } from '../../../components/nota-guia/nota-guia.component';
+import { NgbPaginationModule } from '@ng-bootstrap/ng-bootstrap';
 import { SelectorRangoComponent } from '../../../components/selector-rango/selector-rango.component';
 import { ResumenComprasComponent } from '../../../components/resumen-compras/resumen-compras.component';
 import { GraficaMensualComponent, MetricaMensual } from '../../../components/grafica-mensual/grafica-mensual.component';
 
 const ANIOS_SELECCIONABLES = 5;
+const DEVOLUCIONES_POR_PAGINA = 10;
+const PRODUCTOS_MAS_DEVUELTOS = 5;
 
 @Component({
   selector: 'app-proveedor-detalle',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, RouterLink, FechaDtePipe,
-    SelectorRangoComponent, ResumenComprasComponent, GraficaMensualComponent
+    CommonModule, FormsModule, RouterLink, NgbPaginationModule, FechaDtePipe, UnidadMedidaPipe,
+    SelectorRangoComponent, ResumenComprasComponent, GraficaMensualComponent, NotaGuiaComponent
   ],
   templateUrl: './proveedor-detalle.component.html'
 })
 export class ProveedorDetalleComponent implements OnInit {
   private readonly suppliersService = inject(SuppliersService);
   private readonly purchaseReportsService = inject(PurchaseReportsService);
+  private readonly purchaseProductsService = inject(PurchaseProductsService);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -39,6 +45,25 @@ export class ProveedorDetalleComponent implements OnInit {
   resumen = signal<PurchaseSummaryDTO | null>(null);
   isLoadingResumen = signal<boolean>(false);
   errorResumen = signal<string | null>(null);
+
+  // Devoluciones del periodo (mismo rango que los totales)
+  devoluciones = signal<ProductReturnsReportDTO | null>(null);
+  isLoadingDevoluciones = signal<boolean>(false);
+  errorDevoluciones = signal<string | null>(null);
+  paginaDevoluciones = signal<number>(1);
+  readonly devolucionesPorPagina = DEVOLUCIONES_POR_PAGINA;
+  readonly consejosDevoluciones = [
+    'Cuentan por la fecha de la nota de crédito, en el mismo periodo que las compras de arriba.',
+    'Solo devoluciones y rebajas de productos. Los descuentos por merma no cuentan aquí; siguen en los reportes de compras.',
+    'El porcentaje es sobre lo comprado a este proveedor en el periodo, sin IVA.'
+  ];
+
+  productosMasDevueltos = computed(() => (this.devoluciones()?.products ?? []).slice(0, PRODUCTOS_MAS_DEVUELTOS));
+
+  devolucionesVisibles = computed(() => {
+    const inicio = (this.paginaDevoluciones() - 1) * DEVOLUCIONES_POR_PAGINA;
+    return (this.devoluciones()?.items ?? []).slice(inicio, inicio + DEVOLUCIONES_POR_PAGINA);
+  });
 
   // Compras por mes
   ivaSummary = signal<IvaSummaryDTO | null>(null);
@@ -63,6 +88,7 @@ export class ProveedorDetalleComponent implements OnInit {
       .subscribe(params => {
         this.supplierId = Number(params.get('id'));
         this.resumen.set(null);
+        this.devoluciones.set(null);
         this.ivaSummary.set(null);
         this.anioActual.set(null);
         this.cargarProveedor();
@@ -99,6 +125,7 @@ export class ProveedorDetalleComponent implements OnInit {
   cargarResumen(range: ReportRange = {}): void {
     this.isLoadingResumen.set(true);
     this.errorResumen.set(null);
+    this.cargarDevoluciones(range);
 
     this.purchaseReportsService.getSummary(range, this.supplierId).subscribe({
       next: (res) => {
@@ -108,6 +135,24 @@ export class ProveedorDetalleComponent implements OnInit {
       error: (err) => {
         this.errorResumen.set(err.error?.error || 'Error al cargar las compras del periodo.');
         this.isLoadingResumen.set(false);
+      }
+    });
+  }
+
+  // Sin fechas usa el mes en curso, igual que el resumen: los dos responden con el mismo rango
+  cargarDevoluciones(range: ReportRange = {}): void {
+    this.isLoadingDevoluciones.set(true);
+    this.errorDevoluciones.set(null);
+
+    this.purchaseProductsService.getReturns(range, this.supplierId).subscribe({
+      next: (res) => {
+        this.devoluciones.set(res);
+        this.paginaDevoluciones.set(1);
+        this.isLoadingDevoluciones.set(false);
+      },
+      error: (err) => {
+        this.errorDevoluciones.set(err.error?.error || 'Error al cargar las devoluciones del periodo.');
+        this.isLoadingDevoluciones.set(false);
       }
     });
   }

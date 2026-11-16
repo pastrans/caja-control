@@ -397,3 +397,50 @@ export interface MergeProductsResultDTO {
   key: string; // Producto principal
   variants: number;
 }
+
+// ---------- Devoluciones de un periodo (página del proveedor) ----------
+
+// Línea de nota de crédito sobre un producto comprado (la merma no cuenta)
+export interface ProductReturnItemDTO {
+  date: string; // Fecha de la nota de crédito
+  documentId: number;
+  controlNumber: string;
+  purchaseDocumentId: number;
+  purchaseControlNumber: string;
+  purchaseDate: string;
+  productKey: string;
+  productName: string;
+  unitOfMeasure: number;
+  type: 'return' | 'price';
+  quantity: number; // 0 en las rebajas de precio
+  amount: number;
+}
+
+export interface ReturnedProductDTO {
+  key: string;
+  name: string;
+  ref: string;
+  unitOfMeasure: number;
+  returns: number;
+  purchases: number;
+  quantity: number;
+  amount: number;
+  percentage: number; // Del monto devuelto del periodo
+}
+
+export interface ProductReturnsReportDTO {
+  from: string;
+  to: string;
+  supplierId: number | null;
+  summary: {
+    amount: number;
+    returns: number;
+    priceReductions: number;
+    creditNotes: number;
+    products: number;
+    purchasedAmount: number; // Comprado en el periodo, sin IVA
+    percentage: number;      // amount / purchasedAmount
+  };
+  products: ReturnedProductDTO[]; // De mayor a menor monto
+  items: ProductReturnItemDTO[];  // De la más reciente a la más antigua
+}

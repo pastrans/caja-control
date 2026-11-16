@@ -120,6 +120,188 @@
       }
     </div>
 
+    <!-- Devoluciones del periodo (US-30) -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+      <h5 class="fw-bold mb-0">Devoluciones del periodo</h5>
+      @if (devoluciones(); as d) {
+        <span class="small text-secondary">{{ d.from | fechaDte }} a {{ d.to | fechaDte }}</span>
+      }
+    </div>
+
+    <app-nota-guia class="d-block mb-3" icono="bi-arrow-return-left" titulo="Qué cuenta como devolución"
+                   [consejos]="consejosDevoluciones"></app-nota-guia>
+
+    @if (errorDevoluciones()) {
+      <div class="alert alert-danger small"><i class="bi bi-exclamation-octagon me-1"></i> {{ errorDevoluciones() }}</div>
+    }
+
+    <div class="mb-4" [class.opacity-50]="isLoadingDevoluciones()">
+      @if (devoluciones(); as d) {
+        @if (d.items.length === 0) {
+          <div class="card border-secondary bg-dark-subtle shadow-sm">
+            <div class="card-body text-center text-secondary py-4">
+              <i class="bi bi-check2-circle d-block fs-3 mb-1 text-success"></i>
+              Sin devoluciones de productos en este periodo
+            </div>
+          </div>
+        } @else {
+          <!-- Resumen -->
+          <div class="row g-3 mb-3">
+            <div class="col-6 col-lg-3">
+              <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+                <div class="card-body">
+                  <div class="text-secondary small fw-semibold text-uppercase mb-2"><i class="bi bi-arrow-return-left me-1"></i> Devuelto</div>
+                  <div class="fs-3 fw-bold text-danger text-truncate">{{ d.summary.amount | currency:'USD':'symbol':'1.2-2' }}</div>
+                  <div class="small text-secondary">Sin IVA</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-lg-3">
+              <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+                <div class="card-body">
+                  <div class="text-secondary small fw-semibold text-uppercase mb-2"><i class="bi bi-percent me-1"></i> De lo comprado</div>
+                  <div class="fs-3 fw-bold text-light">{{ d.summary.percentage | number:'1.0-2' }}%</div>
+                  <div class="small text-secondary text-truncate">de {{ d.summary.purchasedAmount | currency:'USD':'symbol':'1.2-2' }}</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-lg-3">
+              <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+                <div class="card-body">
+                  <div class="text-secondary small fw-semibold text-uppercase mb-2"><i class="bi bi-receipt-cutoff me-1"></i> Devoluciones</div>
+                  <div class="fs-3 fw-bold text-light">{{ d.summary.returns }}</div>
+                  <div class="small text-secondary">
+                    en {{ d.summary.creditNotes }} {{ d.summary.creditNotes === 1 ? 'nota de crédito' : 'notas de crédito' }}
+                    @if (d.summary.priceReductions > 0) {
+                      · {{ d.summary.priceReductions }} {{ d.summary.priceReductions === 1 ? 'rebaja' : 'rebajas' }}
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-lg-3">
+              <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+                <div class="card-body">
+                  <div class="text-secondary small fw-semibold text-uppercase mb-2"><i class="bi bi-box-seam me-1"></i> Productos</div>
+                  <div class="fs-3 fw-bold text-light">{{ d.summary.products }}</div>
+                  <div class="small text-secondary">con devoluciones</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <!-- Productos más devueltos -->
+            <div class="col-lg-5">
+              <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+                <div class="card-header border-secondary">
+                  <h6 class="fw-bold mb-0">Productos más devueltos</h6>
+                  <span class="small text-secondary">Por monto devuelto</span>
+                </div>
+                <ul class="list-group list-group-flush">
+                  @for (p of productosMasDevueltos(); track p.key; let i = $index) {
+                    <li class="list-group-item bg-transparent border-secondary py-2">
+                      <div class="d-flex justify-content-between align-items-baseline gap-2">
+                        <a [routerLink]="['/compras/productos/detalle']" [queryParams]="{ key: p.key, months: 'all' }"
+                           class="link-light fw-semibold text-break" style="min-width: 0;">
+                          <span class="text-secondary small me-1">{{ i + 1 }}.</span>{{ p.name }}
+                        </a>
+                        <span class="fw-bold text-danger text-nowrap">{{ p.amount | currency:'USD':'symbol':'1.2-2' }}</span>
+                      </div>
+                      <div class="progress my-1" style="height: 6px;" role="progressbar"
+                           [attr.aria-valuenow]="p.percentage" aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress-bar bg-danger" [style.width.%]="p.percentage"></div>
+                      </div>
+                      <div class="d-flex flex-wrap justify-content-between gap-2 small text-secondary">
+                        <span>
+                          {{ p.returns }} {{ p.returns === 1 ? 'devolución' : 'devoluciones' }}
+                          @if (p.quantity > 0) { · {{ p.quantity | number:'1.0-2' }} {{ p.unitOfMeasure | unidadMedida:'corto' }} }
+                        </span>
+                        <span>{{ p.percentage | number:'1.0-1' }}%</span>
+                      </div>
+                    </li>
+                  }
+                </ul>
+                @if (d.products.length > productosMasDevueltos().length) {
+                  <div class="card-footer bg-transparent border-secondary small text-secondary">
+                    y {{ d.products.length - productosMasDevueltos().length }} productos más en la lista
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Lista de devoluciones -->
+            <div class="col-lg-7">
+              <div class="card border-secondary bg-dark-subtle shadow-sm h-100">
+                <div class="card-header border-secondary">
+                  <h6 class="fw-bold mb-0">Lista de devoluciones</h6>
+                  <span class="small text-secondary">De la más reciente a la más antigua</span>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover align-middle mb-0 table-dark small">
+                    <thead>
+                      <tr>
+                        <th scope="col">Fecha</th>
+                        <th scope="col">Producto</th>
+                        <th scope="col" class="text-end">Cantidad</th>
+                        <th scope="col" class="text-end">Monto</th>
+                        <th scope="col">Documentos</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (r of devolucionesVisibles(); track $index) {
+                        <tr>
+                          <td class="text-nowrap">{{ r.date | fechaDte }}</td>
+                          <td style="min-width: 160px;">
+                            <a [routerLink]="['/compras/productos/detalle']" [queryParams]="{ key: r.productKey, months: 'all' }"
+                               class="link-light text-break">{{ r.productName }}</a>
+                            @if (r.type === 'price') { <span class="badge border border-warning text-warning ms-1">Rebaja</span> }
+                          </td>
+                          <td class="text-end text-nowrap">
+                            @if (r.type === 'return') { {{ r.quantity | number:'1.0-2' }} {{ r.unitOfMeasure | unidadMedida:'corto' }} } @else { — }
+                          </td>
+                          <td class="text-end text-danger text-nowrap">{{ r.amount | currency:'USD':'symbol':'1.2-2' }}</td>
+                          <td class="text-nowrap">
+                            <a [routerLink]="['/compras/documentos', r.documentId]" class="link-danger" title="Nota de crédito">
+                              <i class="bi bi-receipt-cutoff"></i> Nota
+                            </a>
+                            <a [routerLink]="['/compras/documentos', r.purchaseDocumentId]" class="link-info ms-2"
+                               [title]="'Factura original del ' + (r.purchaseDate | fechaDte)">
+                              <i class="bi bi-receipt"></i> Factura
+                            </a>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+                @if (d.items.length > devolucionesPorPagina) {
+                  <div class="card-footer bg-dark border-secondary d-flex justify-content-between align-items-center py-2">
+                    <span class="small text-secondary">{{ d.items.length }} líneas</span>
+                    <ngb-pagination
+                      [collectionSize]="d.items.length"
+                      [page]="paginaDevoluciones()"
+                      [pageSize]="devolucionesPorPagina"
+                      [maxSize]="5"
+                      [rotate]="true"
+                      (pageChange)="paginaDevoluciones.set($event)"
+                      size="sm"
+                      class="mb-0"
+                    ></ngb-pagination>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      } @else if (isLoadingDevoluciones()) {
+        <div class="text-center py-4 text-secondary small">
+          <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+          Cargando devoluciones...
+        </div>
+      }
+    </div>
+
     <!-- Compras por mes -->
     <div class="card border-secondary bg-dark-subtle shadow-sm mb-4">
       <div class="card-header border-secondary d-flex flex-wrap align-items-center justify-content-between gap-2">
