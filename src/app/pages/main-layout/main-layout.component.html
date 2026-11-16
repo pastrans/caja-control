@@ -1,101 +1,55 @@
 <nav class="navbar navbar-expand-lg bg-secondary mb-4" data-bs-theme="dark">
   <div class="container-fluid">
-    <a class="navbar-brand d-flex align-items-center gap-2" routerLink="/">
+    <a class="navbar-brand d-flex align-items-center gap-2" routerLink="/" (click)="cerrarMenu()">
       <i class="bi bi-cash-stack"></i> Caja Control
     </a>
-    <button 
-      class="navbar-toggler" 
-      type="button" 
-      (click)="isMenuCollapsed = !isMenuCollapsed" 
-      [attr.aria-expanded]="!isMenuCollapsed" 
-      aria-controls="navbarText" 
+    <button
+      class="navbar-toggler"
+      type="button"
+      (click)="isMenuCollapsed = !isMenuCollapsed"
+      [attr.aria-expanded]="!isMenuCollapsed"
+      aria-controls="navbarText"
       aria-label="Toggle navigation"
     >
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarText" [ngbCollapse]="isMenuCollapsed">
+      <!-- Menú principal: cada grupo abre su submenú (definido en MENU, en el componente) -->
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        @if (authService.hasRole(['ADMIN'])) {
-          <li class="nav-item">
-            <a class="nav-link d-flex align-items-center gap-2" routerLink="/inicio" routerLinkActive="active">
-              <i class="bi bi-speedometer2"></i> Inicio
-            </a>
-          </li>
-        }
-
-        <!-- Rutas para todos los usuarios autenticados -->
-        <li class="nav-item">
-          <a class="nav-link d-flex align-items-center gap-2" 
-            routerLink="/caja" 
-            [class.active]="router.url === '/caja' || router.url === '/abrir-caja'">
-            <i class="bi bi-wallet2"></i> Caja
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link d-flex align-items-center gap-2" routerLink="/historial" routerLinkActive="active">
-            <i class="bi bi-clock-history"></i> Historial
-          </a>
-        </li>
-
-        <!-- Rutas exclusivas para ADMIN -->
-        @if (authService.hasRole(['ADMIN'])) {
-          <li class="nav-item" ngbDropdown>
+        @for (grupo of menu(); track grupo.label) {
+          <li class="nav-item" ngbDropdown display="static">
             <button type="button" class="nav-link d-flex align-items-center gap-2" ngbDropdownToggle
-                    [class.active]="router.url.startsWith('/compras')">
-              <i class="bi bi-bag"></i> Compras
+                    [class.active]="grupoActivo(grupo)">
+              <i [class]="'bi ' + grupo.icono"></i> {{ grupo.label }}
             </button>
             <div ngbDropdownMenu>
-              <a ngbDropdownItem class="d-flex align-items-center gap-2" routerLink="/compras/importar" routerLinkActive="active"
-                 (click)="isMenuCollapsed = true">
-                <i class="bi bi-upload"></i> Importar DTE
-              </a>
-              <a ngbDropdownItem class="d-flex align-items-center gap-2" routerLink="/compras/documentos" routerLinkActive="active"
-                 (click)="isMenuCollapsed = true">
-                <i class="bi bi-files"></i> Documentos
-              </a>
-              <a ngbDropdownItem class="d-flex align-items-center gap-2" routerLink="/compras/proveedores" routerLinkActive="active"
-                 (click)="isMenuCollapsed = true">
-                <i class="bi bi-truck"></i> Proveedores
-              </a>
-              <a ngbDropdownItem class="d-flex align-items-center gap-2" routerLink="/compras/productos" routerLinkActive="active"
-                 [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'ignored', fragment: 'ignored', matrixParams: 'ignored' }"
-                 (click)="isMenuCollapsed = true">
-                <i class="bi bi-box-seam"></i> Precios de productos
-              </a>
-              <a ngbDropdownItem class="d-flex align-items-center gap-2" routerLink="/compras/productos/variantes" routerLinkActive="active"
-                 (click)="isMenuCollapsed = true">
-                <i class="bi bi-intersect"></i> Unir variantes
-              </a>
-              <a ngbDropdownItem class="d-flex align-items-center gap-2" routerLink="/compras/reportes" routerLinkActive="active"
-                 (click)="isMenuCollapsed = true">
-                <i class="bi bi-graph-up"></i> Reportes
-              </a>
+              @for (opcion of grupo.opciones; track opcion.ruta) {
+                <a ngbDropdownItem class="d-flex align-items-center gap-2" [routerLink]="opcion.ruta"
+                   [class.active]="opcionActiva(opcion)" [attr.aria-current]="opcionActiva(opcion) ? 'page' : null"
+                   (click)="cerrarMenu()">
+                  <i [class]="'bi ' + opcion.icono"></i> {{ opcion.label }}
+                </a>
+              }
             </div>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link d-flex align-items-center gap-2" routerLink="/empleados" routerLinkActive="active">
-              <i class="bi bi-person-badge"></i> Empleados
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link d-flex align-items-center gap-2" routerLink="/usuarios" routerLinkActive="active">
-              <i class="bi bi-people"></i> Usuarios
-            </a>
           </li>
         }
       </ul>
 
-      <!-- Usuario y Cierre de Sesión -->
-      <ul class="navbar-nav d-flex align-items-lg-center gap-2">
-        <li class="nav-item text-light small d-none d-lg-block">
-          <i class="bi bi-person-circle me-1"></i>
-          {{ authService.currentUser()?.name }} 
-          <span class="badge bg-dark ms-1">{{ getRoleLabel(authService.currentUser()?.role) }}</span>
-        </li>
-        <li class="nav-item">
-          <button type="button" class="btn btn-link nav-link d-flex align-items-center gap-2 text-danger-emphasis" (click)="onLogout()">
-            <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+      <!-- Usuario y cierre de sesión -->
+      <ul class="navbar-nav mb-2 mb-lg-0">
+        <li class="nav-item" ngbDropdown display="static" placement="bottom-end">
+          <button type="button" class="nav-link d-flex align-items-center gap-2" ngbDropdownToggle>
+            <i class="bi bi-person-circle"></i>
+            {{ authService.currentUser()?.name }}
+            <span class="badge bg-dark">{{ getRoleLabel(authService.currentUser()?.role) }}</span>
           </button>
+          <div ngbDropdownMenu class="dropdown-menu-lg-end">
+            <span class="dropdown-item-text small text-secondary">{{ authService.currentUser()?.email }}</span>
+            <div class="dropdown-divider"></div>
+            <button type="button" ngbDropdownItem class="d-flex align-items-center gap-2 text-danger-emphasis" (click)="onLogout()">
+              <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+            </button>
+          </div>
         </li>
       </ul>
     </div>
